@@ -33,20 +33,39 @@ const statusEl = $("status");
 const exhibitEl = $("exhibit");
 const galleryEl = $("gallery");
 const countEl = $("count");
+const setupEl = $("setup");
 
 let currentImage = "";
+let taps = 0;
+let tapTimer = 0;
 
 apiKeyEl.value = localStorage.getItem(KEY) || "";
 modelEl.value = localStorage.getItem(MODEL) || "qwen/qwen3.6-27b";
 ownerEl.value = localStorage.getItem(OWNER) || "";
 promptEl.value = localStorage.getItem(PROMPT) || DEFAULT_PROMPT;
 
+if (new URLSearchParams(location.search).get("curador") === "1") {
+  setupEl.classList.remove("hidden");
+}
+
+$("titleTap").onclick = () => {
+  clearTimeout(tapTimer);
+  taps += 1;
+  tapTimer = setTimeout(() => { taps = 0; }, 1400);
+  if (taps >= 5) {
+    taps = 0;
+    setupEl.classList.remove("hidden");
+  }
+};
+
+$("hideSetup").onclick = () => setupEl.classList.add("hidden");
+
 $("saveSetup").onclick = () => {
   localStorage.setItem(KEY, apiKeyEl.value.trim());
   localStorage.setItem(MODEL, modelEl.value);
   localStorage.setItem(OWNER, ownerEl.value.trim());
   localStorage.setItem(PROMPT, promptEl.value);
-  $("setupStatus").textContent = "Guardado solo en este teléfono.";
+  $("setupStatus").textContent = "Guardado solo en este teléfono. No está en GitHub.";
 };
 
 $("resetPrompt").onclick = () => {
@@ -125,9 +144,9 @@ function compress(file) {
 }
 
 async function archivePiece() {
-  const key = apiKeyEl.value.trim();
+  const key = (apiKeyEl.value || localStorage.getItem(KEY) || "").trim();
   if (!key) {
-    statusEl.textContent = "Falta la API key de Groq.";
+    statusEl.textContent = "En este teléfono no hay key. Toca 5 veces el título para configurar.";
     return;
   }
   if (!currentImage) return;
@@ -135,7 +154,7 @@ async function archivePiece() {
   generateEl.disabled = true;
   statusEl.textContent = "El curador está examinando la pieza...";
 
-  const owner = ownerEl.value.trim() || "un habitante anónimo";
+  const owner = ownerEl.value.trim() || localStorage.getItem(OWNER) || "un habitante anónimo";
   const today = new Date().toLocaleDateString("es-MX", {
     day: "2-digit", month: "long", year: "numeric"
   });
@@ -174,7 +193,6 @@ async function archivePiece() {
     const raw = data.choices?.[0]?.message?.content || "";
     const jsonText = raw.replace(/```json|```/g, "").trim();
     const card = JSON.parse(jsonText);
-
     const piece = { ...card, image: currentImage, created: Date.now() };
     const list = pieces();
     list.unshift(piece);

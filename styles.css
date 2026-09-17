@@ -14,6 +14,7 @@ body {
   color: var(--chrome);
   padding: 24px 16px 64px;
 }
+.hidden { display: none !important; }
 .top { text-align: center; margin-bottom: 28px; }
 .eyebrow {
   letter-spacing: .28em;
@@ -47,7 +48,7 @@ input, select, textarea {
   font-size: 15px;
 }
 textarea {
-  min-height: 220px;
+  min-height: 200px;
   line-height: 1.4;
   font-family: ui-monospace, Menlo, monospace;
   font-size: 13px;

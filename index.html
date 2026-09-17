@@ -12,14 +12,14 @@
 <body>
   <header class="top">
     <p class="eyebrow">Colección permanente</p>
-    <h1>The Museum of You</h1>
+    <h1 id="titleTap">The Museum of You</h1>
     <p class="sub">Objetos insignificantes. Tratamiento solemne.</p>
   </header>
 
   <main>
-    <section class="panel" id="setup">
-      <h2>Configuración</h2>
-      <p class="hint">La API key es general. El modelo y el prompt se eligen aquí.</p>
+    <section class="panel hidden" id="setup">
+      <h2>Curador (solo tú)</h2>
+      <p class="hint">La API key se guarda en este teléfono, no en GitHub.</p>
       <label>
         API key de Groq
         <input id="apiKey" type="password" autocomplete="off" placeholder="gsk_..." />
@@ -38,11 +38,11 @@
       </label>
       <label>
         Prompt del curador
-        <textarea id="promptBox" rows="14"></textarea>
+        <textarea id="promptBox" rows="12"></textarea>
       </label>
-      <p class="tiny">Puedes usar {{owner}} y {{fecha}}. No borres la parte del JSON o la ficha se rompe.</p>
       <button type="button" id="resetPrompt" class="ghost">Restablecer prompt</button>
       <button type="button" id="saveSetup" class="ghost">Guardar en este teléfono</button>
+      <button type="button" id="hideSetup" class="ghost">Ocultar ajustes</button>
       <p class="tiny" id="setupStatus"></p>
     </section>
 
@@ -71,7 +71,7 @@
   </main>
 
   <footer>
-    <p>Instálala desde el menú del navegador → Añadir a pantalla de inicio.</p>
+    <p>Toca 5 veces el título si eres el curador.</p>
   </footer>
   <script src="./app.js"></script>
 </body>
