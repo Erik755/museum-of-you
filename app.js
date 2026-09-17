@@ -5,18 +5,6 @@ const MODEL = "moy_model";
 const OWNER = "moy_owner";
 const PROMPT = "moy_prompt";
 const DB = "moy_pieces";
-
-const MODELS = {
-  groq: [
-    ["qwen/qwen3.8-27b", "Qwen 3.8 27B"],
-    ["meta-llama/llama-4-scout-17b-16e-instruct", "Llama 4 Scout"]
-  ],
-  gemini: [
-    ["gemini-3.8-flash", "Gemini 3.8 Flash"],
-    ["gemini-3.5-flash", "Gemini 3.5 Flash"],
-    ["gemini-2.5-flash", "Gemini 2.5 Flash"]
-  ]
-};
 const GEMINI_FALLBACKS = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
 
 const DEFAULT_PROMPT = `Eres el curador más serio de un museo imaginario llamado The Museum of You.
@@ -56,83 +44,149 @@ const installBtn = $("installBtn");
 const installHint = $("installHint");
 
 let currentImage = "";
-let taps = 0;
-let tapTimer = 0;
-let deferredPrompt = null;
+let listCache = [];
 let openIndex = -1;
+let deferredPrompt = null;
 
+function ls(k, v) {
+  if (arguments.length === 1) {
+    try { return localStorage.getItem(k); } catch { return null; }
+  }
+  try { localStorage.setItem(k, v); return true; } catch { return false; }
+}
 function currentProvider() {
-  return providerEl.value === "gemini" ? "gemini" : "groq";
+  return (providerEl && providerEl.value) === "gemini" ? "gemini" : "groq";
 }
 function keyStore() {
   return currentProvider() === "gemini" ? KEY_GEM : KEY_GROQ;
 }
-function fillModels(keep) {
-  const list = MODELS[currentProvider()];
-  modelEl.innerHTML = list.map(([v, n]) => `<option value="${v}">${n}</option>`).join("");
-  const want = keep || localStorage.getItem(MODEL) || list[0][0];
-  const ok = list.some(([v]) => v === want);
-  modelEl.value = ok ? want : list[0][0];
+function openIdb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("moy_idb", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("kv");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
-function loadKeyField() {
-  apiKeyEl.value = localStorage.getItem(keyStore()) || "";
-  apiKeyEl.placeholder = currentProvider() === "gemini" ? "AIzaSy..." : "gsk_...";
+async function idbGet(key) {
+  const db = await openIdb();
+  return new Promise((resolve, reject) => {
+    const q = db.transaction("kv").objectStore("kv").get(key);
+    q.onsuccess = () => resolve(q.result);
+    q.onerror = () => reject(q.error);
+  });
+}
+async function idbSet(key, val) {
+  const db = await openIdb();
+  return new Promise((resolve, reject) => {
+    const q = db.transaction("kv", "readwrite").objectStore("kv").put(val, key);
+    q.onsuccess = () => resolve();
+    q.onerror = () => reject(q.error);
+  });
+}
+function pieces() { return listCache; }
+async function loadPieces() {
+  try {
+    const fromIdb = await idbGet("pieces");
+    if (Array.isArray(fromIdb) && fromIdb.length) {
+      listCache = fromIdb;
+      renderGallery();
+      return;
+    }
+  } catch (_) {}
+  try { listCache = JSON.parse(ls(DB) || "[]"); } catch { listCache = []; }
+  if (!Array.isArray(listCache)) listCache = [];
+  renderGallery();
+  if (listCache.length) {
+    try { await idbSet("pieces", listCache); } catch (_) {}
+  }
+}
+async function savePieces(list) {
+  listCache = list;
+  renderGallery();
+  try { await idbSet("pieces", list); }
+  catch (err) {
+    const ok = ls(DB, JSON.stringify(list.map((p) => ({ ...p, image: (p.image || "").slice(0, 80) }))));
+    if (statusEl) statusEl.textContent = "El museo se guardó con poco espacio: " + (err.message || "error");
+    if (!ok && statusEl) statusEl.textContent = "No hay espacio en el teléfono para más fotos.";
+  }
 }
 
-providerEl.value = localStorage.getItem(PROVIDER) || "groq";
-fillModels();
-loadKeyField();
-ownerEl.value = localStorage.getItem(OWNER) || "";
-promptEl.value = localStorage.getItem(PROMPT) || DEFAULT_PROMPT;
-providerEl.onchange = () => { fillModels(); loadKeyField(); };
+function persistSetup() {
+  if (!apiKeyEl) return;
+  const key = apiKeyEl.value.trim();
+  ls(PROVIDER, currentProvider());
+  if (key) ls(keyStore(), key);
+  if (modelEl && modelEl.value) ls(MODEL, modelEl.value);
+  if (ownerEl) ls(OWNER, ownerEl.value.trim());
+  if (promptEl && promptEl.value) ls(PROMPT, promptEl.value);
+}
+function restoreSetup() {
+  const old = ls("moy_groq_key") || ls(KEY_GROQ) || "";
+  if (providerEl) providerEl.value = ls(PROVIDER) || (ls(KEY_GEM) ? "gemini" : "groq");
+  if (modelEl) {
+    const want = ls(MODEL);
+    if (want) {
+      const opt = [...modelEl.options].some((o) => o.value === want);
+      if (opt) modelEl.value = want;
+    }
+  }
+  if (apiKeyEl) {
+    apiKeyEl.value = ls(keyStore()) || (currentProvider() === "groq" ? old : "") || "";
+    apiKeyEl.placeholder = currentProvider() === "gemini" ? "AIzaSy..." : "gsk_...";
+  }
+  if (ownerEl) ownerEl.value = ls(OWNER) || "";
+  if (promptEl) promptEl.value = ls(PROMPT) || DEFAULT_PROMPT;
+}
 
-if (new URLSearchParams(location.search).get("curador") === "1") setupEl.classList.remove("hidden");
+restoreSetup();
+if (providerEl) providerEl.onchange = () => {
+  if (apiKeyEl) {
+    apiKeyEl.value = ls(keyStore()) || "";
+    apiKeyEl.placeholder = currentProvider() === "gemini" ? "AIzaSy..." : "gsk_...";
+  }
+  persistSetup();
+};
+["apiKey", "model", "owner", "promptBox"].forEach((id) => {
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener("change", persistSetup);
+  el.addEventListener("blur", persistSetup);
+});
 
 function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
-if (isStandalone()) installBtn.classList.add("hidden");
+if (installBtn && isStandalone()) installBtn.classList.add("hidden");
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; });
-installBtn.onclick = async () => {
+if (installBtn) installBtn.onclick = async () => {
   if (deferredPrompt) {
     deferredPrompt.prompt();
     const res = await deferredPrompt.userChoice;
-    installHint.textContent = res.outcome === "accepted" ? "Instalada en tu pantalla." : "Cancelado.";
+    if (installHint) installHint.textContent = res.outcome === "accepted" ? "Instalada en tu pantalla." : "Cancelado.";
     if (res.outcome === "accepted") installBtn.classList.add("hidden");
     deferredPrompt = null;
     return;
   }
-  installHint.textContent = isIOS()
+  if (installHint) installHint.textContent = isIOS()
     ? "iPhone: Compartir → Añadir a pantalla de inicio."
-    : "Chrome: menú ⋮ → Instalar aplicación o Añadir a pantalla de inicio.";
+    : "Chrome: menú → Instalar aplicación.";
 };
-window.addEventListener("appinstalled", () => { installBtn.classList.add("hidden"); installHint.textContent = "Instalada."; });
 
-$("titleTap").onclick = () => {
-  clearTimeout(tapTimer);
-  taps += 1;
-  tapTimer = setTimeout(() => { taps = 0; }, 1400);
-  if (taps >= 5) { taps = 0; setupEl.classList.remove("hidden"); }
+if ($("hideSetup")) $("hideSetup").onclick = () => setupEl && setupEl.classList.add("hidden");
+if ($("closeLb")) $("closeLb").onclick = () => lightbox.classList.add("hidden");
+if (lightbox) lightbox.addEventListener("click", (e) => { if (e.target === lightbox) lightbox.classList.add("hidden"); });
+if ($("saveSetup")) $("saveSetup").onclick = () => {
+  persistSetup();
+  $("setupStatus").textContent = ls(keyStore()) ? "Guardado en este teléfono." : "No se pudo guardar (sin espacio o bloqueo).";
 };
-$("hideSetup").onclick = () => setupEl.classList.add("hidden");
-$("closeLb").onclick = () => lightbox.classList.add("hidden");
-lightbox.addEventListener("click", (e) => { if (e.target === lightbox) lightbox.classList.add("hidden"); });
-
-$("saveSetup").onclick = () => {
-  localStorage.setItem(PROVIDER, currentProvider());
-  localStorage.setItem(keyStore(), apiKeyEl.value.trim());
-  localStorage.setItem(MODEL, modelEl.value);
-  localStorage.setItem(OWNER, ownerEl.value.trim());
-  localStorage.setItem(PROMPT, promptEl.value);
-  $("setupStatus").textContent = "Guardado solo en este teléfono.";
-};
-$("resetPrompt").onclick = () => {
+if ($("resetPrompt")) $("resetPrompt").onclick = () => {
   promptEl.value = DEFAULT_PROMPT;
-  localStorage.setItem(PROMPT, DEFAULT_PROMPT);
+  ls(PROMPT, DEFAULT_PROMPT);
   $("setupStatus").textContent = "Prompt restablecido.";
 };
-photoEl.onchange = async () => {
+if (photoEl) photoEl.onchange = async () => {
   const file = photoEl.files[0];
   if (!file) return;
   currentImage = await compress(file);
@@ -141,27 +195,18 @@ photoEl.onchange = async () => {
   generateEl.disabled = false;
   statusEl.textContent = "Foto lista.";
 };
-generateEl.onclick = archivePiece;
+if (generateEl) generateEl.onclick = archivePiece;
 
-function pieces() {
-  try { return JSON.parse(localStorage.getItem(DB) || "[]"); }
-  catch { return []; }
-}
-function savePieces(list) {
-  localStorage.setItem(DB, JSON.stringify(list));
-  renderGallery();
-}
 function shortDesc(t) {
   const words = String(t || "").trim().split(/\s+/);
   if (words.length <= 20) return t || "";
   return words.slice(0, 18).join(" ") + ".";
 }
 function framed(src) {
-  return `<div class="gold-frame"><img src="${src}" alt="" /></div>`;
+  return `<div class="gold-frame"><img src="${src || ""}" alt="" /></div>`;
 }
 function plaqueHtml(p) {
-  return `
-    ${framed(p.image)}
+  return `${framed(p.image)}
     <div class="plaque">
       <p class="meta">${escapeHtml(p.fecha || "")}</p>
       <h3>${escapeHtml(p.titulo || "")}</h3>
@@ -225,7 +270,7 @@ function loadImg(src) {
     img.src = src;
   });
 }
-$("shareBtn").onclick = async () => {
+if ($("shareBtn")) $("shareBtn").onclick = async () => {
   const p = pieces()[openIndex];
   if (!p) return;
   try {
@@ -236,10 +281,10 @@ $("shareBtn").onclick = async () => {
       else await navigator.share(data);
     } else await downloadFile(file);
   } catch (err) {
-    if (String(err.name) !== "AbortError") statusEl.textContent = "No se pudo compartir.";
+    if (String(err.name) !== "AbortError" && statusEl) statusEl.textContent = "No se pudo compartir.";
   }
 };
-$("downloadBtn").onclick = async () => {
+if ($("downloadBtn")) $("downloadBtn").onclick = async () => {
   const p = pieces()[openIndex];
   if (!p) return;
   await downloadFile(await pieceFile(p));
@@ -252,6 +297,7 @@ function downloadFile(file) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1500);
 }
 function renderGallery() {
+  if (!galleryEl || !countEl) return;
   const list = pieces();
   countEl.textContent = list.length + (list.length === 1 ? " pieza" : " piezas");
   galleryEl.innerHTML = list.map((p, i) => `
@@ -259,8 +305,7 @@ function renderGallery() {
       ${framed(p.image)}
       <p>${escapeHtml(p.titulo || "Sin título")}</p>
       <button type="button" class="ghost open-mini" data-open="${i}">Ver / compartir</button>
-    </article>
-  `).join("") || "<p class='tiny'>Aún no hay patrimonio.</p>";
+    </article>`).join("") || "<p class='tiny'>Aún no hay patrimonio.</p>";
   galleryEl.querySelectorAll("[data-open]").forEach((el) => {
     el.onclick = (ev) => { ev.stopPropagation(); openPiece(Number(el.dataset.open)); };
   });
@@ -273,7 +318,7 @@ function compress(file) {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      const max = 1024;
+      const max = 900;
       let w = img.width, h = img.height;
       if (w > h && w > max) { h = Math.round(h * max / w); w = max; }
       else if (h > max) { w = Math.round(w * max / h); h = max; }
@@ -281,7 +326,7 @@ function compress(file) {
       canvas.width = w; canvas.height = h;
       canvas.getContext("2d").drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.72));
+      resolve(canvas.toDataURL("image/jpeg", 0.65));
     };
     img.onerror = reject;
     img.src = url;
@@ -313,22 +358,15 @@ async function callGroq(key, prompt) {
 function geminiHint(msg) {
   const m = String(msg || "");
   if (/API key|API_KEY|invalid|not valid/i.test(m)) {
-    return "Key de Gemini rechazada. Crea una nueva en aistudio.google.com/apikey. En la key: sin restricciones de app, o HTTP referrers con https://erik755.github.io/*";
-  }
-  if (/not found|NOT_FOUND|is not found/i.test(m)) {
-    return "Ese modelo no existe en tu cuenta. Prueba Gemini 3.5 Flash o 2.5 Flash.";
+    return "Key de Gemini rechazada. Crea una nueva en aistudio.google.com/apikey.";
   }
   return m;
 }
 async function geminiOnce(key, prompt, model) {
   const b64 = currentImage.split(",")[1] || "";
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
-  const res = await fetch(url, {
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": key
-    },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
       contents: [{ parts: [
         { text: prompt },
@@ -347,9 +385,8 @@ async function callGemini(key, prompt) {
   const queue = [first].concat(GEMINI_FALLBACKS.filter((m) => m !== first));
   let last = "";
   for (const model of queue) {
-    try {
-      return await geminiOnce(key, prompt, model);
-    } catch (err) {
+    try { return await geminiOnce(key, prompt, model); }
+    catch (err) {
       last = err.message || String(err);
       if (/API key|API_KEY|not valid/i.test(last)) throw new Error(geminiHint(last));
     }
@@ -357,26 +394,25 @@ async function callGemini(key, prompt) {
   throw new Error(geminiHint(last));
 }
 async function archivePiece() {
-  const key = (apiKeyEl.value || localStorage.getItem(keyStore()) || "").trim();
-  if (!key) { statusEl.textContent = "Toca 5 veces el título y pega tu API key."; return; }
+  persistSetup();
+  const key = (apiKeyEl.value || ls(keyStore()) || "").trim();
+  if (!key) { statusEl.textContent = "Pega tu API key en Ajustes y pulsa Guardar."; return; }
   if (currentProvider() === "gemini" && !key.startsWith("AIza")) {
-    statusEl.textContent = "La key de Gemini debe empezar con AIza. No uses la de Groq (gsk_).";
+    statusEl.textContent = "La key de Gemini debe empezar con AIza.";
     return;
   }
   if (!currentImage) return;
   generateEl.disabled = true;
   statusEl.textContent = "El curador está examinando la pieza...";
-  const owner = ownerEl.value.trim() || localStorage.getItem(OWNER) || "un habitante anónimo";
+  const owner = ownerEl.value.trim() || ls(OWNER) || "un habitante anónimo";
   const today = new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" });
   const prompt = (promptEl.value || DEFAULT_PROMPT).replaceAll("{{owner}}", owner).replaceAll("{{fecha}}", today);
   try {
-    const card = currentProvider() === "gemini"
-      ? await callGemini(key, prompt)
-      : await callGroq(key, prompt);
+    const card = currentProvider() === "gemini" ? await callGemini(key, prompt) : await callGroq(key, prompt);
     const piece = { ...card, image: currentImage, created: Date.now() };
-    const list = pieces();
+    const list = pieces().slice();
     list.unshift(piece);
-    savePieces(list);
+    await savePieces(list);
     exhibitEl.hidden = false;
     exhibitEl.innerHTML = plaqueHtml(piece);
     exhibitEl.onclick = () => openPiece(0);
@@ -389,4 +425,4 @@ async function archivePiece() {
 }
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
-renderGallery();
+loadPieces();
