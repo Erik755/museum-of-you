@@ -1,7 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0c0c0d"/>
-  <rect x="96" y="140" width="320" height="240" fill="none" stroke="#e8e4dc" stroke-width="10"/>
-  <rect x="128" y="180" width="256" height="160" fill="#1a1a1c"/>
-  <circle cx="256" cy="260" r="28" fill="#c45c4a"/>
-  <text x="256" y="430" text-anchor="middle" font-family="Georgia, serif" font-size="28" fill="#e8e4dc">MUSEUM</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="The Museum of You">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0d78a"/>
+      <stop offset="45%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#9a7420"/>
+    </linearGradient>
+    <linearGradient id="cream" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3efe6"/>
+      <stop offset="100%" stop-color="#d8d0c2"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#0c0c0d"/>
+  <rect x="64" y="64" width="384" height="384" rx="48" fill="#141416" stroke="url(#gold)" stroke-width="3" opacity="0.95"/>
+  <path d="M128 198 L256 118 L384 198 Z" fill="url(#gold)"/>
+  <path d="M148 192 L256 132 L364 192 Z" fill="#0c0c0d"/>
+  <circle cx="256" cy="168" r="14" fill="#c45c4a"/>
+  <circle cx="256" cy="168" r="7" fill="#f0d78a" opacity="0.85"/>
+  <rect x="128" y="198" width="256" height="18" fill="url(#gold)"/>
+  <rect x="128" y="216" width="256" height="6" fill="#f0d78a" opacity="0.55"/>
+  <g fill="url(#cream)">
+    <rect x="148" y="222" width="28" height="148" rx="3"/>
+    <rect x="210" y="222" width="28" height="148" rx="3"/>
+    <rect x="274" y="222" width="28" height="148" rx="3"/>
+    <rect x="336" y="222" width="28" height="148" rx="3"/>
+  </g>
+  <g fill="url(#gold)">
+    <rect x="142" y="222" width="40" height="10" rx="2"/>
+    <rect x="204" y="222" width="40" height="10" rx="2"/>
+    <rect x="268" y="222" width="40" height="10" rx="2"/>
+    <rect x="330" y="222" width="40" height="10" rx="2"/>
+  </g>
+  <g fill="url(#gold)">
+    <rect x="142" y="362" width="40" height="8" rx="2"/>
+    <rect x="204" y="362" width="40" height="8" rx="2"/>
+    <rect x="268" y="362" width="40" height="8" rx="2"/>
+    <rect x="330" y="362" width="40" height="8" rx="2"/>
+  </g>
+  <rect x="120" y="372" width="272" height="12" rx="2" fill="url(#gold)"/>
+  <rect x="108" y="386" width="296" height="12" rx="2" fill="#d4af37"/>
+  <rect x="96" y="400" width="320" height="14" rx="2" fill="#9a7420"/>
 </svg>
