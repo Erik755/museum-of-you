@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c0c0d" />
+  <title>The Museum of You</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icon.svg" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="top">
+    <p class="eyebrow">Colección permanente</p>
+    <h1>The Museum of You</h1>
+    <p class="sub">Objetos insignificantes. Tratamiento solemne.</p>
+  </header>
+
+  <main>
+    <section class="panel" id="setup">
+      <h2>Configuración</h2>
+      <p class="hint">La API key de Groq es una llave general. El modelo lo eliges aquí abajo, no al crear la key.</p>
+      <label>
+        API key de Groq
+        <input id="apiKey" type="password" autocomplete="off" placeholder="gsk_..." />
+      </label>
+      <label>
+        Modelo
+        <select id="model">
+          <option value="qwen/qwen3.6-27b">Qwen 3.6 27B (recomendado)</option>
+          <option value="qwen/qwen3.8-27b">Qwen 3.8 27B (más serio)</option>
+          <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (visión)</option>
+        </select>
+      </label>
+      <label>
+        Nombre del museo / habitante
+        <input id="owner" type="text" placeholder="Ej. Michelle" />
+      </label>
+      <button type="button" id="saveSetup" class="ghost">Guardar en este teléfono</button>
+      <p class="tiny" id="setupStatus"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Nueva pieza</h2>
+      <div class="actions">
+        <label class="file-btn">
+          Tomar o subir foto
+          <input id="photo" type="file" accept="image/*" capture="environment" hidden />
+        </label>
+        <button type="button" id="generate" disabled>Archivar en el museo</button>
+      </div>
+      <img id="preview" alt="Vista previa" hidden />
+      <p class="status" id="status"></p>
+    </section>
+
+    <section class="exhibit" id="exhibit" hidden></section>
+
+    <section class="panel">
+      <div class="row">
+        <h2>Tu museo</h2>
+        <span id="count">0 piezas</span>
+      </div>
+      <div id="gallery" class="gallery"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Instálala desde el menú del navegador → Añadir a pantalla de inicio.</p>
+  </footer>
+  <script src="./app.js"></script>
+</body>
+</html>

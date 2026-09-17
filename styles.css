@@ -1,0 +1,80 @@
+:root {
+  --bg: #0c0c0d;
+  --paper: #f3f1ec;
+  --ink: #1a1814;
+  --chrome: #e8e4dc;
+  --copper: #c45c4a;
+  --mute: #8a857c;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  background: var(--bg);
+  color: var(--chrome);
+  padding: 24px 16px 64px;
+}
+.top { text-align: center; margin-bottom: 28px; }
+.eyebrow {
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--copper);
+}
+h1 { font-weight: 400; font-size: 28px; margin: 8px 0; }
+.sub, .hint, .tiny, .status, footer { font-family: system-ui, sans-serif; }
+.sub { color: var(--mute); margin: 0; }
+.panel {
+  border: 1px solid #2a2a2c;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+h2 { font-size: 16px; font-weight: 400; margin: 0 0 10px; }
+label {
+  display: block;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--mute);
+  margin: 10px 0;
+}
+input, select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  background: #161618;
+  color: var(--chrome);
+  border: 1px solid #333;
+  font-size: 16px;
+}
+.hint { font-size: 13px; color: var(--mute); }
+.tiny { font-size: 12px; color: #6f6a62; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+button, .file-btn {
+  font-family: system-ui, sans-serif;
+  border: 0;
+  padding: 12px 14px;
+  background: var(--copper);
+  color: #fff;
+  cursor: pointer;
+}
+.ghost { background: transparent; color: var(--chrome); border: 1px solid #444; width: 100%; margin-top: 8px; }
+button:disabled { opacity: .4; }
+#preview { width: 100%; margin-top: 12px; max-height: 280px; object-fit: contain; background: #111; }
+.exhibit {
+  background: var(--paper);
+  color: var(--ink);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.exhibit img { width: 100%; margin-bottom: 16px; }
+.exhibit h3 { margin: 0; font-size: 22px; letter-spacing: .04em; }
+.meta { font-family: system-ui, sans-serif; font-size: 12px; color: #5c5850; text-transform: uppercase; letter-spacing: .12em; }
+.desc { font-size: 16px; line-height: 1.45; }
+.score { border-top: 1px solid #d7d2c8; padding-top: 10px; font-family: system-ui, sans-serif; font-size: 13px; }
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.card { background: #161618; border: 1px solid #2a2a2c; padding: 8px; }
+.card img { width: 100%; height: 110px; object-fit: cover; }
+.card p { margin: 6px 0 0; font-size: 13px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; }
+footer { text-align: center; color: var(--mute); font-size: 12px; }
+.status { min-height: 1.2em; }

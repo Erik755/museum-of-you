@@ -1,0 +1,18 @@
+{
+  "name": "The Museum of You",
+  "short_name": "Museum of You",
+  "description": "Convierte momentos insignificantes en piezas de museo.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0c0c0d",
+  "theme_color": "#c45c4a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
