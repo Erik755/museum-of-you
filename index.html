@@ -24,17 +24,21 @@
   <main>
     <section class="panel hidden" id="setup">
       <h2>Curador (solo tú)</h2>
-      <p class="hint">La API key se guarda en este teléfono, no en GitHub.</p>
+      <p class="hint">Las keys se guardan en este teléfono, no en GitHub.</p>
       <label>
-        API key de Groq
-        <input id="apiKey" type="password" autocomplete="off" placeholder="gsk_..." />
+        Proveedor
+        <select id="provider">
+          <option value="groq">Groq</option>
+          <option value="gemini">Gemini (Google)</option>
+        </select>
+      </label>
+      <label>
+        API key
+        <input id="apiKey" type="password" autocomplete="off" placeholder="gsk_... o AIza..." />
       </label>
       <label>
         Modelo
-        <select id="model">
-          <option value="qwen/qwen3.8-27b">Qwen 3.8 27B</option>
-          <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (visión)</option>
-        </select>
+        <select id="model"></select>
       </label>
       <label>
         Nombre del museo / habitante
