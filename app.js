@@ -3,6 +3,7 @@ const MODEL = "moy_model";
 const OWNER = "moy_owner";
 const PROMPT = "moy_prompt";
 const DB = "moy_pieces";
+const DEFAULT_MODEL = "qwen/qwen3.8-27b";
 
 const DEFAULT_PROMPT = `Eres el curador más serio de un museo imaginario llamado The Museum of You.
 Tratas objetos cotidianos ridículos con extrema solemnidad académica.
@@ -46,7 +47,11 @@ let deferredPrompt = null;
 let openIndex = -1;
 
 apiKeyEl.value = localStorage.getItem(KEY) || "";
-modelEl.value = localStorage.getItem(MODEL) || "qwen/qwen3.6-27b";
+{
+  let saved = localStorage.getItem(MODEL) || DEFAULT_MODEL;
+  if (saved.indexOf("3.6") !== -1) saved = DEFAULT_MODEL;
+  modelEl.value = saved;
+}
 ownerEl.value = localStorage.getItem(OWNER) || "";
 promptEl.value = localStorage.getItem(PROMPT) || DEFAULT_PROMPT;
 
@@ -229,7 +234,7 @@ function renderGallery() {
   });
 }
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" }[c]));
 }
 function compress(file) {
   return new Promise((resolve, reject) => {
@@ -250,6 +255,10 @@ function compress(file) {
     img.src = url;
   });
 }
+function chosenModel() {
+  const v = modelEl.value || DEFAULT_MODEL;
+  return v.indexOf("3.6") !== -1 ? DEFAULT_MODEL : v;
+}
 async function archivePiece() {
   const key = (apiKeyEl.value || localStorage.getItem(KEY) || "").trim();
   if (!key) { statusEl.textContent = "Toca 5 veces el título para configurar la key."; return; }
@@ -264,7 +273,7 @@ async function archivePiece() {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
       body: JSON.stringify({
-        model: modelEl.value,
+        model: chosenModel(),
         temperature: 0.8,
         messages: [{ role: "user", content: [
           { type: "text", text: prompt },
