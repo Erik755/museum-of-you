@@ -3,7 +3,6 @@ const MODEL = "moy_model";
 const OWNER = "moy_owner";
 const PROMPT = "moy_prompt";
 const DB = "moy_pieces";
-const FRAMES = ["frame-oro", "frame-barroco", "frame-negro", "frame-plata", "frame-madera", "frame-museo"];
 
 const DEFAULT_PROMPT = `Eres el curador más serio de un museo imaginario llamado The Museum of You.
 Tratas objetos cotidianos ridículos con extrema solemnidad académica.
@@ -51,25 +50,14 @@ modelEl.value = localStorage.getItem(MODEL) || "qwen/qwen3.6-27b";
 ownerEl.value = localStorage.getItem(OWNER) || "";
 promptEl.value = localStorage.getItem(PROMPT) || DEFAULT_PROMPT;
 
-if (new URLSearchParams(location.search).get("curador") === "1") {
-  setupEl.classList.remove("hidden");
-}
+if (new URLSearchParams(location.search).get("curador") === "1") setupEl.classList.remove("hidden");
 
 function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
-function isIOS() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
-
+function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
 if (isStandalone()) installBtn.classList.add("hidden");
-
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.classList.remove("hidden");
-});
-
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; });
 installBtn.onclick = async () => {
   if (deferredPrompt) {
     deferredPrompt.prompt();
@@ -79,33 +67,21 @@ installBtn.onclick = async () => {
     deferredPrompt = null;
     return;
   }
-  if (isIOS()) {
-    installHint.textContent = "iPhone: botón Compartir → Añadir a pantalla de inicio.";
-    return;
-  }
-  installHint.textContent = "Chrome Android: menú ⋮ → Instalar aplicación. Si no sale, abre el sitio en Chrome (no Instagram ni Grok).";
+  installHint.textContent = isIOS()
+    ? "iPhone: Compartir → Añadir a pantalla de inicio."
+    : "Chrome: menú ⋮ → Instalar aplicación o Añadir a pantalla de inicio.";
 };
-
-window.addEventListener("appinstalled", () => {
-  installBtn.classList.add("hidden");
-  installHint.textContent = "Instalada.";
-});
+window.addEventListener("appinstalled", () => { installBtn.classList.add("hidden"); installHint.textContent = "Instalada."; });
 
 $("titleTap").onclick = () => {
   clearTimeout(tapTimer);
   taps += 1;
   tapTimer = setTimeout(() => { taps = 0; }, 1400);
-  if (taps >= 5) {
-    taps = 0;
-    setupEl.classList.remove("hidden");
-  }
+  if (taps >= 5) { taps = 0; setupEl.classList.remove("hidden"); }
 };
-
 $("hideSetup").onclick = () => setupEl.classList.add("hidden");
 $("closeLb").onclick = () => lightbox.classList.add("hidden");
-lightbox.addEventListener("click", (e) => {
-  if (e.target === lightbox) lightbox.classList.add("hidden");
-});
+lightbox.addEventListener("click", (e) => { if (e.target === lightbox) lightbox.classList.add("hidden"); });
 
 $("saveSetup").onclick = () => {
   localStorage.setItem(KEY, apiKeyEl.value.trim());
@@ -119,7 +95,6 @@ $("resetPrompt").onclick = () => {
   localStorage.setItem(PROMPT, DEFAULT_PROMPT);
   $("setupStatus").textContent = "Prompt restablecido.";
 };
-
 photoEl.onchange = async () => {
   const file = photoEl.files[0];
   if (!file) return;
@@ -139,18 +114,17 @@ function savePieces(list) {
   localStorage.setItem(DB, JSON.stringify(list));
   renderGallery();
 }
-function frameClass(p, i) {
-  return p.marco && FRAMES.includes(p.marco) ? p.marco : FRAMES[i % FRAMES.length];
-}
 function shortDesc(t) {
   const words = String(t || "").trim().split(/\s+/);
   if (words.length <= 20) return t || "";
   return words.slice(0, 18).join(" ") + ".";
 }
+function framed(src) {
+  return `<div class="gold-frame"><img src="${src}" alt="" /></div>`;
+}
 function plaqueHtml(p) {
-  const fr = frameClass(p, 0);
   return `
-    <div class="frame ${fr}"><img src="${p.image}" alt="" /></div>
+    ${framed(p.image)}
     <div class="plaque">
       <p class="meta">${escapeHtml(p.fecha || "")}</p>
       <h3>${escapeHtml(p.titulo || "")}</h3>
@@ -160,8 +134,7 @@ function plaqueHtml(p) {
     </div>`;
 }
 function openPiece(i) {
-  const list = pieces();
-  const p = list[i];
+  const p = pieces()[i];
   if (!p) return;
   openIndex = i;
   lbInner.innerHTML = plaqueHtml(p);
@@ -172,30 +145,27 @@ function shareText(p) {
 }
 async function pieceFile(p) {
   const img = await loadImg(p.image);
-  const w = 1080;
-  const h = 1350;
+  const w = 1080, h = 1350;
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#f3f1ec";
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = "#c45c4a";
-  ctx.fillRect(0, 0, w, 18);
-  const box = 72;
-  ctx.fillStyle = "#1a1814";
-  ctx.fillRect(box - 16, 70, w - 2 * (box - 16), 720);
-  const ratio = Math.min((w - 2 * box) / img.width, 680 / img.height);
-  const iw = img.width * ratio;
-  const ih = img.height * ratio;
+  ctx.fillStyle = "#f3f1ec"; ctx.fillRect(0, 0, w, h);
+  const g = ctx.createLinearGradient(40, 40, 1040, 820);
+  g.addColorStop(0, "#f0d78a"); g.addColorStop(0.5, "#b8892b"); g.addColorStop(1, "#6e4e14");
+  ctx.fillStyle = g; ctx.fillRect(40, 40, 1000, 790);
+  ctx.strokeStyle = "#5c4010"; ctx.lineWidth = 10; ctx.strokeRect(55, 55, 970, 760);
+  ctx.strokeStyle = "#e8c86a"; ctx.lineWidth = 4; ctx.strokeRect(70, 70, 940, 730);
+  const box = 110;
+  const maxW = w - 2 * box, maxH = 680;
+  const ratio = Math.min(maxW / img.width, maxH / img.height);
+  const iw = img.width * ratio, ih = img.height * ratio;
+  ctx.fillStyle = "#111"; ctx.fillRect((w - iw) / 2, 90, iw, ih);
   ctx.drawImage(img, (w - iw) / 2, 90, iw, ih);
-  ctx.fillStyle = "#1a1814";
-  ctx.font = "28px Georgia";
-  wrap(ctx, (p.titulo || "SIN TÍTULO").toUpperCase(), box, 860, w - 2 * box, 34);
+  ctx.fillStyle = "#1a1814"; ctx.font = "28px Georgia";
+  wrap(ctx, (p.titulo || "SIN TÍTULO").toUpperCase(), box, 880, w - 2 * box, 34);
   ctx.font = "22px Georgia";
-  wrap(ctx, shortDesc(p.descripcion || ""), box, 980, w - 2 * box, 30);
-  ctx.font = "18px sans-serif";
-  ctx.fillStyle = "#5c5850";
+  wrap(ctx, shortDesc(p.descripcion || ""), box, 990, w - 2 * box, 30);
+  ctx.font = "18px sans-serif"; ctx.fillStyle = "#5c5850";
   ctx.fillText(`Importancia ${p.importancia ?? "?"}/100  ·  The Museum of You`, box, 1280);
   const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.88));
   return new File([blob], "museum-of-you.jpg", { type: "image/jpeg" });
@@ -205,11 +175,8 @@ function wrap(ctx, text, x, y, maxW, lineH) {
   let line = "";
   for (const word of words) {
     const test = line ? line + " " + word : word;
-    if (ctx.measureText(test).width > maxW) {
-      ctx.fillText(line, x, y);
-      line = word;
-      y += lineH;
-    } else line = test;
+    if (ctx.measureText(test).width > maxW) { ctx.fillText(line, x, y); line = word; y += lineH; }
+    else line = test;
   }
   if (line) ctx.fillText(line, x, y);
 }
@@ -228,23 +195,17 @@ $("shareBtn").onclick = async () => {
     const file = await pieceFile(p);
     if (navigator.share) {
       const data = { title: p.titulo || "The Museum of You", text: shareText(p), files: [file] };
-      if (navigator.canShare && !navigator.canShare(data)) {
-        await navigator.share({ title: data.title, text: data.text });
-      } else {
-        await navigator.share(data);
-      }
-    } else {
-      await downloadFile(file);
-    }
+      if (navigator.canShare && !navigator.canShare(data)) await navigator.share({ title: data.title, text: data.text });
+      else await navigator.share(data);
+    } else await downloadFile(file);
   } catch (err) {
-    if (String(err.name) !== "AbortError") installHint.textContent = "No se pudo compartir: " + err.message;
+    if (String(err.name) !== "AbortError") statusEl.textContent = "No se pudo compartir.";
   }
 };
 $("downloadBtn").onclick = async () => {
   const p = pieces()[openIndex];
   if (!p) return;
-  const file = await pieceFile(p);
-  await downloadFile(file);
+  await downloadFile(await pieceFile(p));
 };
 function downloadFile(file) {
   const a = document.createElement("a");
@@ -258,22 +219,17 @@ function renderGallery() {
   countEl.textContent = list.length + (list.length === 1 ? " pieza" : " piezas");
   galleryEl.innerHTML = list.map((p, i) => `
     <article class="card" data-open="${i}">
-      <div class="frame ${frameClass(p, i)}"><img src="${p.image}" alt="" /></div>
+      ${framed(p.image)}
       <p>${escapeHtml(p.titulo || "Sin título")}</p>
       <button type="button" class="ghost open-mini" data-open="${i}">Ver / compartir</button>
     </article>
   `).join("") || "<p class='tiny'>Aún no hay patrimonio.</p>";
   galleryEl.querySelectorAll("[data-open]").forEach((el) => {
-    el.onclick = (ev) => {
-      ev.stopPropagation();
-      openPiece(Number(el.dataset.open));
-    };
+    el.onclick = (ev) => { ev.stopPropagation(); openPiece(Number(el.dataset.open)); };
   });
 }
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[c]));
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 function compress(file) {
   return new Promise((resolve, reject) => {
@@ -296,10 +252,7 @@ function compress(file) {
 }
 async function archivePiece() {
   const key = (apiKeyEl.value || localStorage.getItem(KEY) || "").trim();
-  if (!key) {
-    statusEl.textContent = "Toca 5 veces el título para configurar la key.";
-    return;
-  }
+  if (!key) { statusEl.textContent = "Toca 5 veces el título para configurar la key."; return; }
   if (!currentImage) return;
   generateEl.disabled = true;
   statusEl.textContent = "El curador está examinando la pieza...";
@@ -323,7 +276,7 @@ async function archivePiece() {
     if (!res.ok) throw new Error(data.error?.message || "Error de Groq: " + res.status);
     const raw = data.choices?.[0]?.message?.content || "";
     const card = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    const piece = { ...card, image: currentImage, created: Date.now(), marco: FRAMES[pieces().length % FRAMES.length] };
+    const piece = { ...card, image: currentImage, created: Date.now() };
     const list = pieces();
     list.unshift(piece);
     savePieces(list);
