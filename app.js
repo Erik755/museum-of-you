@@ -1,9 +1,21 @@
-const KEY = "moy_groq_key";
+const KEY_GROQ = "moy_groq_key";
+const KEY_GEM = "moy_gemini_key";
+const PROVIDER = "moy_provider";
 const MODEL = "moy_model";
 const OWNER = "moy_owner";
 const PROMPT = "moy_prompt";
 const DB = "moy_pieces";
-const DEFAULT_MODEL = "qwen/qwen3.8-27b";
+
+const MODELS = {
+  groq: [
+    ["qwen/qwen3.8-27b", "Qwen 3.8 27B"],
+    ["meta-llama/llama-4-scout-17b-16e-instruct", "Llama 4 Scout"]
+  ],
+  gemini: [
+    ["gemini-2.5-flash", "Gemini 2.5 Flash"],
+    ["gemini-2.0-flash", "Gemini 2.0 Flash"]
+  ]
+};
 
 const DEFAULT_PROMPT = `Eres el curador más serio de un museo imaginario llamado The Museum of You.
 Tratas objetos cotidianos ridículos con extrema solemnidad académica.
@@ -24,6 +36,7 @@ Responde SOLO en JSON válido, sin markdown, con estas claves:
 
 const $ = (id) => document.getElementById(id);
 const apiKeyEl = $("apiKey");
+const providerEl = $("provider");
 const modelEl = $("model");
 const ownerEl = $("owner");
 const promptEl = $("promptBox");
@@ -46,14 +59,30 @@ let tapTimer = 0;
 let deferredPrompt = null;
 let openIndex = -1;
 
-apiKeyEl.value = localStorage.getItem(KEY) || "";
-{
-  let saved = localStorage.getItem(MODEL) || DEFAULT_MODEL;
-  if (saved.indexOf("3.6") !== -1) saved = DEFAULT_MODEL;
-  modelEl.value = saved;
+function currentProvider() {
+  return providerEl.value === "gemini" ? "gemini" : "groq";
 }
+function keyStore() {
+  return currentProvider() === "gemini" ? KEY_GEM : KEY_GROQ;
+}
+function fillModels(keep) {
+  const list = MODELS[currentProvider()];
+  modelEl.innerHTML = list.map(([v, n]) => `<option value="${v}">${n}</option>`).join("");
+  const want = keep || localStorage.getItem(MODEL) || list[0][0];
+  const ok = list.some(([v]) => v === want);
+  modelEl.value = ok ? want : list[0][0];
+}
+function loadKeyField() {
+  apiKeyEl.value = localStorage.getItem(keyStore()) || "";
+  apiKeyEl.placeholder = currentProvider() === "gemini" ? "AIza..." : "gsk_...";
+}
+
+providerEl.value = localStorage.getItem(PROVIDER) || "groq";
+fillModels();
+loadKeyField();
 ownerEl.value = localStorage.getItem(OWNER) || "";
 promptEl.value = localStorage.getItem(PROMPT) || DEFAULT_PROMPT;
+providerEl.onchange = () => { fillModels(); loadKeyField(); };
 
 if (new URLSearchParams(location.search).get("curador") === "1") setupEl.classList.remove("hidden");
 
@@ -89,7 +118,8 @@ $("closeLb").onclick = () => lightbox.classList.add("hidden");
 lightbox.addEventListener("click", (e) => { if (e.target === lightbox) lightbox.classList.add("hidden"); });
 
 $("saveSetup").onclick = () => {
-  localStorage.setItem(KEY, apiKeyEl.value.trim());
+  localStorage.setItem(PROVIDER, currentProvider());
+  localStorage.setItem(keyStore(), apiKeyEl.value.trim());
   localStorage.setItem(MODEL, modelEl.value);
   localStorage.setItem(OWNER, ownerEl.value.trim());
   localStorage.setItem(PROMPT, promptEl.value);
@@ -255,13 +285,53 @@ function compress(file) {
     img.src = url;
   });
 }
-function chosenModel() {
-  const v = modelEl.value || DEFAULT_MODEL;
-  return v.indexOf("3.6") !== -1 ? DEFAULT_MODEL : v;
+function parseCard(raw) {
+  const clean = String(raw || "").replace(/```json|```/g, "").trim();
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
+  return JSON.parse(start >= 0 ? clean.slice(start, end + 1) : clean);
+}
+async function callGroq(key, prompt) {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+    body: JSON.stringify({
+      model: modelEl.value,
+      temperature: 0.8,
+      messages: [{ role: "user", content: [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: currentImage } }
+      ]}]
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Error de Groq: " + res.status);
+  return parseCard(data.choices?.[0]?.message?.content || "");
+}
+async function callGemini(key, prompt) {
+  const b64 = currentImage.split(",")[1] || "";
+  const model = modelEl.value || "gemini-2.5-flash";
+  const res = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(key),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [
+          { text: prompt },
+          { inline_data: { mime_type: "image/jpeg", data: b64 } }
+        ]}]
+      })
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Error de Gemini: " + res.status);
+  const raw = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+  return parseCard(raw);
 }
 async function archivePiece() {
-  const key = (apiKeyEl.value || localStorage.getItem(KEY) || "").trim();
-  if (!key) { statusEl.textContent = "Toca 5 veces el título para configurar la key."; return; }
+  const key = (apiKeyEl.value || localStorage.getItem(keyStore()) || "").trim();
+  if (!key) { statusEl.textContent = "Toca 5 veces el título y pega tu API key."; return; }
   if (!currentImage) return;
   generateEl.disabled = true;
   statusEl.textContent = "El curador está examinando la pieza...";
@@ -269,22 +339,9 @@ async function archivePiece() {
   const today = new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" });
   const prompt = (promptEl.value || DEFAULT_PROMPT).replaceAll("{{owner}}", owner).replaceAll("{{fecha}}", today);
   try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
-      body: JSON.stringify({
-        model: chosenModel(),
-        temperature: 0.8,
-        messages: [{ role: "user", content: [
-          { type: "text", text: prompt },
-          { type: "image_url", image_url: { url: currentImage } }
-        ]}]
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || "Error de Groq: " + res.status);
-    const raw = data.choices?.[0]?.message?.content || "";
-    const card = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    const card = currentProvider() === "gemini"
+      ? await callGemini(key, prompt)
+      : await callGroq(key, prompt);
     const piece = { ...card, image: currentImage, created: Date.now() };
     const list = pieces();
     list.unshift(piece);
