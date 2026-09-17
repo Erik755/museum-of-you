@@ -25,6 +25,14 @@ body {
 h1 { font-weight: 400; font-size: 28px; margin: 8px 0; }
 .sub, .hint, .tiny, .status, footer { font-family: system-ui, sans-serif; }
 .sub { color: var(--mute); margin: 0; }
+.install-btn {
+  margin-top: 14px;
+  font-family: system-ui, sans-serif;
+  border: 0;
+  padding: 12px 18px;
+  background: var(--copper);
+  color: #fff;
+}
 .panel {
   border: 1px solid #2a2a2c;
   padding: 16px;
@@ -81,18 +89,10 @@ button:disabled { opacity: .4; }
 footer { text-align: center; color: var(--mute); font-size: 12px; }
 .status, .tiny, .hint { font-size: 13px; color: var(--mute); }
 
-.frame {
-  padding: 10px;
-  background: #d9c7a3;
-}
-.frame img {
-  width: 100%;
-  display: block;
-  object-fit: cover;
-}
+.frame { padding: 10px; background: #d9c7a3; }
+.frame img { width: 100%; display: block; object-fit: cover; }
 .card .frame img { height: 130px; }
 .exhibit .frame img { max-height: 280px; object-fit: contain; background: #111; }
-
 .frame-oro {
   background: linear-gradient(160deg, #8a6a2f, #e6c56a 40%, #7a5a24);
   padding: 12px;
@@ -124,7 +124,6 @@ footer { text-align: center; color: var(--mute); font-size: 12px; }
   border: 1px solid #cfc8bb;
   box-shadow: 0 8px 20px #0006;
 }
-
 .lightbox {
   position: fixed;
   inset: 0;
@@ -133,14 +132,6 @@ footer { text-align: center; color: var(--mute); font-size: 12px; }
   overflow: auto;
   padding: 16px;
 }
-.lb-inner {
-  max-width: 520px;
-  margin: 48px auto 24px;
-}
+.lb-inner { max-width: 520px; margin: 48px auto 24px; }
 .lb-inner .frame img { max-height: 52vh; object-fit: contain; background: #111; }
-.close-lb {
-  position: sticky;
-  top: 8px;
-  float: right;
-  z-index: 2;
-}
+.close-lb { position: sticky; top: 8px; float: right; z-index: 2; }

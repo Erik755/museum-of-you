@@ -1,4 +1,4 @@
-const CACHE = "museum-you-v4";
+const CACHE = "museum-you-v5";
 const ASSETS = ["./index.html", "./styles.css", "./app.js", "./manifest.json", "./icon.svg"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));

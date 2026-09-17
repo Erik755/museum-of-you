@@ -37,10 +37,13 @@ const countEl = $("count");
 const setupEl = $("setup");
 const lightbox = $("lightbox");
 const lbInner = $("lbInner");
+const installBtn = $("installBtn");
+const installHint = $("installHint");
 
 let currentImage = "";
 let taps = 0;
 let tapTimer = 0;
+let deferredPrompt = null;
 
 apiKeyEl.value = localStorage.getItem(KEY) || "";
 modelEl.value = localStorage.getItem(MODEL) || "qwen/qwen3.6-27b";
@@ -50,6 +53,49 @@ promptEl.value = localStorage.getItem(PROMPT) || DEFAULT_PROMPT;
 if (new URLSearchParams(location.search).get("curador") === "1") {
   setupEl.classList.remove("hidden");
 }
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+if (isStandalone()) {
+  installBtn.classList.add("hidden");
+} else {
+  installBtn.classList.remove("hidden");
+}
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.classList.remove("hidden");
+  installHint.textContent = "";
+});
+
+installBtn.onclick = async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const res = await deferredPrompt.userChoice;
+    if (res.outcome === "accepted") {
+      installBtn.classList.add("hidden");
+      installHint.textContent = "Listo. Ya está en tu pantalla de inicio.";
+    }
+    deferredPrompt = null;
+    return;
+  }
+  if (isIOS()) {
+    installHint.textContent = "En iPhone: Compartir → Añadir a pantalla de inicio.";
+    return;
+  }
+  installHint.textContent = "En Chrome: menú ⋮ → Instalar aplicación o Añadir a pantalla de inicio.";
+};
+
+window.addEventListener("appinstalled", () => {
+  installBtn.classList.add("hidden");
+  installHint.textContent = "Instalada.";
+});
 
 $("titleTap").onclick = () => {
   clearTimeout(tapTimer);
