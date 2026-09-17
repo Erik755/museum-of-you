@@ -88,5 +88,16 @@ button:disabled { opacity: .4; }
 .lightbox { position: fixed; inset: 0; background: #0c0c0de6; z-index: 40; overflow: auto; padding: 16px; }
 .lb-inner { max-width: 520px; margin: 48px auto 12px; }
 .lb-inner .gold-frame img { max-height: 52vh; object-fit: contain; aspect-ratio: auto; }
-.close-lb { position: sticky; top: 8px; float: right; z-index: 2; }
+
 .lb-actions { max-width: 520px; margin: 0 auto 32px; clear: both; }
+
+.artist-label { display: block; margin: 0 0 12px; font-family: system-ui, sans-serif; font-size: 13px; color: var(--mute); }
+.artist-label input { width: 100%; margin-top: 6px; padding: 10px; background: #161618; color: var(--chrome); border: 1px solid #333; font-size: 15px; }
+.exhibit-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.close-exhibit, .close-lb {
+  font-family: system-ui, sans-serif; border: 0; padding: 12px 16px;
+  background: var(--copper); color: #fff; cursor: pointer; border-radius: 4px; z-index: 50;
+}
+.close-lb { position: fixed; top: max(12px, env(safe-area-inset-top)); right: 12px; box-shadow: 0 4px 16px #0008; }
+.exhibit-hint { font-family: system-ui, sans-serif; font-size: 12px; color: var(--mute); }
+.exhibit-body { cursor: pointer; }

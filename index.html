@@ -43,10 +43,7 @@
           <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
         </select>
       </label>
-      <label>Nombre del museo / habitante
-        <input id="owner" type="text" placeholder="Ej. Michelle" />
-      </label>
-      <label>Prompt del curador
+            <label>Prompt del curador
         <textarea id="promptBox" rows="10"></textarea>
       </label>
       <button type="button" id="resetPrompt" class="ghost">Restablecer prompt</button>
@@ -56,6 +53,9 @@
     </section>
     <section class="panel">
       <h2>Nueva pieza</h2>
+      <label class="artist-label">Nombre del artista
+        <input id="artist" type="text" placeholder="Ej. Michelle" autocomplete="name" />
+      </label>
       <div class="actions">
         <label class="file-btn">Tomar o subir foto
           <input id="photo" type="file" accept="image/*" capture="environment" hidden />
@@ -75,13 +75,13 @@
     </section>
   </main>
   <div id="lightbox" class="lightbox hidden" role="dialog">
-    <button type="button" id="closeLb" class="close-lb">Cerrar</button>
+    <button type="button" id="closeLb" class="close-lb">Cerrar y volver al museo</button>
     <div id="lbInner" class="lb-inner"></div>
     <div class="lb-actions">
       <button type="button" id="shareBtn">Compartir</button>
       <button type="button" id="downloadBtn" class="ghost">Guardar imagen</button>
     </div>
   </div>
-  <script src="./app.js?v=17"></script>
+  <script src="./app.js?v=18"></script>
 </body>
 </html>
