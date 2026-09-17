@@ -1,0 +1,113 @@
+  const prompt = (promptEl.value || DEFAULT_PROMPT).replaceAll("{{owner}}", owner).replaceAll("{{fecha}}", today);
+  try {
+    const card = currentProvider() === "gemini" ? await callGemini(key, prompt) : await callGroq(key, prompt);
+    const piece = { ...card, image: currentImage, created: Date.now() };
+    const list = pieces().slice();
+    list.unshift(piece);
+    await savePieces(list);
+    await clearDraft();
+    exhibitEl.hidden = false;
+    exhibitEl.innerHTML = plaqueHtml(piece);
+    exhibitEl.onclick = () => openPiece(0);
+    statusEl.textContent = "Ingresada. Toca la ficha para ver y compartir.";
+  } catch (err) {
+    statusEl.textContent = "No se pudo archivar: " + err.message;
+  } finally {
+    generateEl.disabled = !currentImage;
+  }
+}
+
+async function onPhotoPicked() {
+  const file = photoEl && photoEl.files && photoEl.files[0];
+  if (!file) return;
+  if (statusEl) statusEl.textContent = "Procesando foto...";
+  try {
+    const dataUrl = await compress(file);
+    if (!dataUrl || dataUrl.indexOf("data:") !== 0) throw new Error("vacío");
+    applyPreview(dataUrl, "Foto lista.");
+    await saveDraft(dataUrl);
+  } catch (err) {
+    currentImage = "";
+    if (previewEl) {
+      previewEl.removeAttribute("src");
+      previewEl.hidden = true;
+    }
+    if (generateEl) generateEl.disabled = true;
+    if (statusEl) {
+      statusEl.textContent = "No se pudo comprimir la foto. Prueba otra imagen.";
+    }
+  }
+}
+
+function bindHandlers() {
+  if (handlersBound) return;
+  handlersBound = true;
+
+  if (installBtn && isStandalone()) installBtn.classList.add("hidden");
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; });
+  if (installBtn) installBtn.onclick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const res = await deferredPrompt.userChoice;
+      if (installHint) installHint.textContent = res.outcome === "accepted" ? "Instalada en tu pantalla." : "Cancelado.";
+      if (res.outcome === "accepted") installBtn.classList.add("hidden");
+      deferredPrompt = null;
+      return;
+    }
+    if (installHint) installHint.textContent = isIOS()
+      ? "iPhone: Compartir → Añadir a pantalla de inicio."
+      : "Chrome: menú → Instalar aplicación.";
+  };
+
+  if (providerEl) providerEl.onchange = async () => {
+    if (apiKeyEl) {
+      apiKeyEl.value = ls(keyStore()) || "";
+      apiKeyEl.placeholder = currentProvider() === "gemini" ? "AIzaSy..." : "gsk_...";
+    }
+    await persistSetup();
+  };
+  ["apiKey", "model", "owner", "promptBox"].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener("change", () => { persistSetup(); });
+    el.addEventListener("blur", () => { persistSetup(); });
+  });
+
+  if ($("hideSetup")) $("hideSetup").onclick = () => setupEl && setupEl.classList.add("hidden");
+  if ($("closeLb")) $("closeLb").onclick = () => lightbox.classList.add("hidden");
+  if (lightbox) lightbox.addEventListener("click", (e) => { if (e.target === lightbox) lightbox.classList.add("hidden"); });
+  if ($("saveSetup")) $("saveSetup").onclick = async () => {
+    const result = await persistSetup();
+    const status = $("setupStatus");
+    if (!status) return;
+    if (result.lsOk) {
+      status.textContent = "Guardado en este teléfono.";
+    } else if (result.idbOk) {
+      status.textContent = "localStorage lleno; guardado en almacén interno (IndexedDB).";
+    } else {
+      status.textContent = "No se pudo guardar (sin espacio o bloqueo).";
+    }
+  };
+  if ($("resetPrompt")) $("resetPrompt").onclick = async () => {
+    promptEl.value = DEFAULT_PROMPT;
+    ls(PROMPT, DEFAULT_PROMPT);
+    await persistSetup();
+    $("setupStatus").textContent = "Prompt restablecido.";
+  };
+  if (photoEl) {
+    photoEl.addEventListener("change", onPhotoPicked);
+    photoEl.addEventListener("input", onPhotoPicked);
+  }
+  if (generateEl) generateEl.onclick = archivePiece;
+
+  if ($("shareBtn")) $("shareBtn").onclick = async () => {
+    const p = pieces()[openIndex];
+    if (!p) return;
+    try {
+      const file = await pieceFile(p);
+      if (navigator.share) {
+        const data = { title: p.titulo || "The Museum of You", text: shareText(p), files: [file] };
+        if (navigator.canShare && !navigator.canShare(data)) await navigator.share({ title: data.title, text: data.text });
+        else await navigator.share(data);
+      } else await downloadFile(file);
+    } catch (err) {
