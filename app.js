@@ -1,1 +1,1 @@
-LOADING_FROM_DISK_VIA_NEXT_CALL
+const KEY_GROQ="moy_groq_key"
