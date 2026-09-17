@@ -1,1 +1,1 @@
-file:///workspace/moy-fix/app.js
+PLACEHOLDER_REPLACE_ME
