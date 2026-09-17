@@ -21,24 +21,20 @@
     <button type="button" id="settingsBtn" class="ghost" style="width:auto;margin:10px auto 0;display:inline-block" onclick="document.getElementById('setup').classList.toggle('hidden')">Ajustes</button>
     <p class="tiny" id="installHint"></p>
   </header>
-
   <main>
     <section class="panel" id="setup">
       <h2>Curador (solo tú)</h2>
-      <p class="hint">Las keys se guardan en este teléfono, no en GitHub.</p>
-      <label>
-        Proveedor
+      <p class="hint">Ajustes en este teléfono. Fotos en almacén local (no se suben a GitHub).</p>
+      <label>Proveedor
         <select id="provider">
           <option value="groq">Groq</option>
           <option value="gemini">Gemini (Google)</option>
         </select>
       </label>
-      <label>
-        API key
+      <label>API key
         <input id="apiKey" type="password" autocomplete="off" placeholder="gsk_... o AIzaSy..." />
       </label>
-      <label>
-        Modelo
+      <label>Modelo
         <select id="model" size="5">
           <option value="qwen/qwen3.8-27b">Groq: Qwen 3.8 27B</option>
           <option value="meta-llama/llama-4-scout-17b-16e-instruct">Groq: Llama 4 Scout</option>
@@ -47,25 +43,21 @@
           <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
         </select>
       </label>
-      <label>
-        Nombre del museo / habitante
+      <label>Nombre del museo / habitante
         <input id="owner" type="text" placeholder="Ej. Michelle" />
       </label>
-      <label>
-        Prompt del curador
-        <textarea id="promptBox" rows="12"></textarea>
+      <label>Prompt del curador
+        <textarea id="promptBox" rows="10"></textarea>
       </label>
       <button type="button" id="resetPrompt" class="ghost">Restablecer prompt</button>
-      <button type="button" id="saveSetup" class="ghost">Guardar en este teléfono</button>
+      <button type="button" id="saveSetup" class="ghost">Guardar ajustes</button>
       <button type="button" id="hideSetup" class="ghost">Ocultar ajustes</button>
       <p class="tiny" id="setupStatus"></p>
     </section>
-
     <section class="panel">
       <h2>Nueva pieza</h2>
       <div class="actions">
-        <label class="file-btn">
-          Tomar o subir foto
+        <label class="file-btn">Tomar o subir foto
           <input id="photo" type="file" accept="image/*" capture="environment" hidden />
         </label>
         <button type="button" id="generate" disabled>Archivar en el museo</button>
@@ -73,9 +65,7 @@
       <img id="preview" alt="Vista previa" hidden />
       <p class="status" id="status"></p>
     </section>
-
     <section class="exhibit" id="exhibit" hidden></section>
-
     <section class="panel">
       <div class="row">
         <h2>Tu museo</h2>
@@ -84,7 +74,6 @@
       <div id="gallery" class="gallery"></div>
     </section>
   </main>
-
   <div id="lightbox" class="lightbox hidden" role="dialog">
     <button type="button" id="closeLb" class="close-lb">Cerrar</button>
     <div id="lbInner" class="lb-inner"></div>
@@ -93,7 +82,6 @@
       <button type="button" id="downloadBtn" class="ghost">Guardar imagen</button>
     </div>
   </div>
-
-  <script src="./app.js?v=9"></script>
+  <script src="./app.js?v=10"></script>
 </body>
 </html>
