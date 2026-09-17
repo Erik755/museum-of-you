@@ -44,6 +44,7 @@ let currentImage = "";
 let taps = 0;
 let tapTimer = 0;
 let deferredPrompt = null;
+let openIndex = -1;
 
 apiKeyEl.value = localStorage.getItem(KEY) || "";
 modelEl.value = localStorage.getItem(MODEL) || "qwen/qwen3.6-27b";
@@ -61,35 +62,28 @@ function isIOS() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
-if (isStandalone()) {
-  installBtn.classList.add("hidden");
-} else {
-  installBtn.classList.remove("hidden");
-}
+if (isStandalone()) installBtn.classList.add("hidden");
 
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
   installBtn.classList.remove("hidden");
-  installHint.textContent = "";
 });
 
 installBtn.onclick = async () => {
   if (deferredPrompt) {
     deferredPrompt.prompt();
     const res = await deferredPrompt.userChoice;
-    if (res.outcome === "accepted") {
-      installBtn.classList.add("hidden");
-      installHint.textContent = "Listo. Ya está en tu pantalla de inicio.";
-    }
+    installHint.textContent = res.outcome === "accepted" ? "Instalada en tu pantalla." : "Cancelado.";
+    if (res.outcome === "accepted") installBtn.classList.add("hidden");
     deferredPrompt = null;
     return;
   }
   if (isIOS()) {
-    installHint.textContent = "En iPhone: Compartir → Añadir a pantalla de inicio.";
+    installHint.textContent = "iPhone: botón Compartir → Añadir a pantalla de inicio.";
     return;
   }
-  installHint.textContent = "En Chrome: menú ⋮ → Instalar aplicación o Añadir a pantalla de inicio.";
+  installHint.textContent = "Chrome Android: menú ⋮ → Instalar aplicación. Si no sale, abre el sitio en Chrome (no Instagram ni Grok).";
 };
 
 window.addEventListener("appinstalled", () => {
@@ -120,7 +114,6 @@ $("saveSetup").onclick = () => {
   localStorage.setItem(PROMPT, promptEl.value);
   $("setupStatus").textContent = "Guardado solo en este teléfono.";
 };
-
 $("resetPrompt").onclick = () => {
   promptEl.value = DEFAULT_PROMPT;
   localStorage.setItem(PROMPT, DEFAULT_PROMPT);
@@ -136,7 +129,6 @@ photoEl.onchange = async () => {
   generateEl.disabled = false;
   statusEl.textContent = "Foto lista.";
 };
-
 generateEl.onclick = archivePiece;
 
 function pieces() {
@@ -150,8 +142,13 @@ function savePieces(list) {
 function frameClass(p, i) {
   return p.marco && FRAMES.includes(p.marco) ? p.marco : FRAMES[i % FRAMES.length];
 }
-function plaqueHtml(p, i, withButton) {
-  const fr = frameClass(p, i);
+function shortDesc(t) {
+  const words = String(t || "").trim().split(/\s+/);
+  if (words.length <= 20) return t || "";
+  return words.slice(0, 18).join(" ") + ".";
+}
+function plaqueHtml(p) {
+  const fr = frameClass(p, 0);
   return `
     <div class="frame ${fr}"><img src="${p.image}" alt="" /></div>
     <div class="plaque">
@@ -160,20 +157,101 @@ function plaqueHtml(p, i, withButton) {
       <p class="meta">${escapeHtml(p.periodo || "")} · ${escapeHtml(p.ubicacion || "")}</p>
       <p class="desc">${escapeHtml(shortDesc(p.descripcion || ""))}</p>
       <p class="score">Importancia histórica: ${escapeHtml(String(p.importancia ?? "?"))}/100</p>
-      ${withButton ? `<button type="button" class="ghost del" data-i="${i}">Quitar</button>` : ""}
     </div>`;
-}
-function shortDesc(t) {
-  const words = t.trim().split(/\s+/);
-  if (words.length <= 20) return t;
-  return words.slice(0, 18).join(" ") + ".";
 }
 function openPiece(i) {
   const list = pieces();
   const p = list[i];
   if (!p) return;
-  lbInner.innerHTML = plaqueHtml(p, i, false);
+  openIndex = i;
+  lbInner.innerHTML = plaqueHtml(p);
   lightbox.classList.remove("hidden");
+}
+function shareText(p) {
+  return `${p.titulo || "Pieza"}\n${shortDesc(p.descripcion || "")}\nImportancia: ${p.importancia ?? "?"}/100\nThe Museum of You`;
+}
+async function pieceFile(p) {
+  const img = await loadImg(p.image);
+  const w = 1080;
+  const h = 1350;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#f3f1ec";
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#c45c4a";
+  ctx.fillRect(0, 0, w, 18);
+  const box = 72;
+  ctx.fillStyle = "#1a1814";
+  ctx.fillRect(box - 16, 70, w - 2 * (box - 16), 720);
+  const ratio = Math.min((w - 2 * box) / img.width, 680 / img.height);
+  const iw = img.width * ratio;
+  const ih = img.height * ratio;
+  ctx.drawImage(img, (w - iw) / 2, 90, iw, ih);
+  ctx.fillStyle = "#1a1814";
+  ctx.font = "28px Georgia";
+  wrap(ctx, (p.titulo || "SIN TÍTULO").toUpperCase(), box, 860, w - 2 * box, 34);
+  ctx.font = "22px Georgia";
+  wrap(ctx, shortDesc(p.descripcion || ""), box, 980, w - 2 * box, 30);
+  ctx.font = "18px sans-serif";
+  ctx.fillStyle = "#5c5850";
+  ctx.fillText(`Importancia ${p.importancia ?? "?"}/100  ·  The Museum of You`, box, 1280);
+  const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.88));
+  return new File([blob], "museum-of-you.jpg", { type: "image/jpeg" });
+}
+function wrap(ctx, text, x, y, maxW, lineH) {
+  const words = String(text).split(/\s+/);
+  let line = "";
+  for (const word of words) {
+    const test = line ? line + " " + word : word;
+    if (ctx.measureText(test).width > maxW) {
+      ctx.fillText(line, x, y);
+      line = word;
+      y += lineH;
+    } else line = test;
+  }
+  if (line) ctx.fillText(line, x, y);
+}
+function loadImg(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+$("shareBtn").onclick = async () => {
+  const p = pieces()[openIndex];
+  if (!p) return;
+  try {
+    const file = await pieceFile(p);
+    if (navigator.share) {
+      const data = { title: p.titulo || "The Museum of You", text: shareText(p), files: [file] };
+      if (navigator.canShare && !navigator.canShare(data)) {
+        await navigator.share({ title: data.title, text: data.text });
+      } else {
+        await navigator.share(data);
+      }
+    } else {
+      await downloadFile(file);
+    }
+  } catch (err) {
+    if (String(err.name) !== "AbortError") installHint.textContent = "No se pudo compartir: " + err.message;
+  }
+};
+$("downloadBtn").onclick = async () => {
+  const p = pieces()[openIndex];
+  if (!p) return;
+  const file = await pieceFile(p);
+  await downloadFile(file);
+};
+function downloadFile(file) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(file);
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
 }
 function renderGallery() {
   const list = pieces();
@@ -182,10 +260,14 @@ function renderGallery() {
     <article class="card" data-open="${i}">
       <div class="frame ${frameClass(p, i)}"><img src="${p.image}" alt="" /></div>
       <p>${escapeHtml(p.titulo || "Sin título")}</p>
+      <button type="button" class="ghost open-mini" data-open="${i}">Ver / compartir</button>
     </article>
   `).join("") || "<p class='tiny'>Aún no hay patrimonio.</p>";
   galleryEl.querySelectorAll("[data-open]").forEach((el) => {
-    el.onclick = () => openPiece(Number(el.dataset.open));
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      openPiece(Number(el.dataset.open));
+    };
   });
 }
 function escapeHtml(s) {
@@ -241,19 +323,14 @@ async function archivePiece() {
     if (!res.ok) throw new Error(data.error?.message || "Error de Groq: " + res.status);
     const raw = data.choices?.[0]?.message?.content || "";
     const card = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    const piece = {
-      ...card,
-      image: currentImage,
-      created: Date.now(),
-      marco: FRAMES[pieces().length % FRAMES.length]
-    };
+    const piece = { ...card, image: currentImage, created: Date.now(), marco: FRAMES[pieces().length % FRAMES.length] };
     const list = pieces();
     list.unshift(piece);
     savePieces(list);
     exhibitEl.hidden = false;
-    exhibitEl.innerHTML = plaqueHtml(piece, 0, false);
+    exhibitEl.innerHTML = plaqueHtml(piece);
     exhibitEl.onclick = () => openPiece(0);
-    statusEl.textContent = "Ingresada a la colección. Toca la ficha para ampliar.";
+    statusEl.textContent = "Ingresada. Toca la ficha para ver y compartir.";
   } catch (err) {
     statusEl.textContent = "No se pudo archivar: " + err.message;
   } finally {
