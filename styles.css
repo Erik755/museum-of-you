@@ -101,7 +101,7 @@ footer { text-align: center; color: var(--mute); font-size: 12px; }
 .frame-barroco {
   background: #3b1d12;
   padding: 14px;
-  border: 6px double #c4a dig;
+  border: 6px double #c4a36a;
 }
 .frame-negro {
   background: #111;
