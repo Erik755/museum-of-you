@@ -1,1 +1,1 @@
-FILE_PLACEHOLDER
+file:///tmp/push-app.js
