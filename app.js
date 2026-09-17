@@ -12,10 +12,12 @@ const MODELS = {
     ["meta-llama/llama-4-scout-17b-16e-instruct", "Llama 4 Scout"]
   ],
   gemini: [
-    ["gemini-2.5-flash", "Gemini 2.5 Flash"],
-    ["gemini-2.0-flash", "Gemini 2.0 Flash"]
+    ["gemini-3.8-flash", "Gemini 3.8 Flash"],
+    ["gemini-3.5-flash", "Gemini 3.5 Flash"],
+    ["gemini-2.5-flash", "Gemini 2.5 Flash"]
   ]
 };
+const GEMINI_FALLBACKS = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
 
 const DEFAULT_PROMPT = `Eres el curador más serio de un museo imaginario llamado The Museum of You.
 Tratas objetos cotidianos ridículos con extrema solemnidad académica.
@@ -74,7 +76,7 @@ function fillModels(keep) {
 }
 function loadKeyField() {
   apiKeyEl.value = localStorage.getItem(keyStore()) || "";
-  apiKeyEl.placeholder = currentProvider() === "gemini" ? "AIza..." : "gsk_...";
+  apiKeyEl.placeholder = currentProvider() === "gemini" ? "AIzaSy..." : "gsk_...";
 }
 
 providerEl.value = localStorage.getItem(PROVIDER) || "groq";
@@ -308,30 +310,59 @@ async function callGroq(key, prompt) {
   if (!res.ok) throw new Error(data.error?.message || "Error de Groq: " + res.status);
   return parseCard(data.choices?.[0]?.message?.content || "");
 }
-async function callGemini(key, prompt) {
+function geminiHint(msg) {
+  const m = String(msg || "");
+  if (/API key|API_KEY|invalid|not valid/i.test(m)) {
+    return "Key de Gemini rechazada. Crea una nueva en aistudio.google.com/apikey. En la key: sin restricciones de app, o HTTP referrers con https://erik755.github.io/*";
+  }
+  if (/not found|NOT_FOUND|is not found/i.test(m)) {
+    return "Ese modelo no existe en tu cuenta. Prueba Gemini 3.5 Flash o 2.5 Flash.";
+  }
+  return m;
+}
+async function geminiOnce(key, prompt, model) {
   const b64 = currentImage.split(",")[1] || "";
-  const model = modelEl.value || "gemini-2.5-flash";
-  const res = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + encodeURIComponent(key),
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [
-          { text: prompt },
-          { inline_data: { mime_type: "image/jpeg", data: b64 } }
-        ]}]
-      })
-    }
-  );
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": key
+    },
+    body: JSON.stringify({
+      contents: [{ parts: [
+        { text: prompt },
+        { inlineData: { mimeType: "image/jpeg", data: b64 } }
+      ]}]
+    })
+  });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || "Error de Gemini: " + res.status);
+  if (!res.ok) throw new Error(data.error?.message || "Error Gemini " + res.status);
   const raw = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+  if (!raw) throw new Error("Gemini no devolvió texto");
   return parseCard(raw);
+}
+async function callGemini(key, prompt) {
+  const first = modelEl.value || GEMINI_FALLBACKS[0];
+  const queue = [first].concat(GEMINI_FALLBACKS.filter((m) => m !== first));
+  let last = "";
+  for (const model of queue) {
+    try {
+      return await geminiOnce(key, prompt, model);
+    } catch (err) {
+      last = err.message || String(err);
+      if (/API key|API_KEY|not valid/i.test(last)) throw new Error(geminiHint(last));
+    }
+  }
+  throw new Error(geminiHint(last));
 }
 async function archivePiece() {
   const key = (apiKeyEl.value || localStorage.getItem(keyStore()) || "").trim();
   if (!key) { statusEl.textContent = "Toca 5 veces el título y pega tu API key."; return; }
+  if (currentProvider() === "gemini" && !key.startsWith("AIza")) {
+    statusEl.textContent = "La key de Gemini debe empezar con AIza. No uses la de Groq (gsk_).";
+    return;
+  }
   if (!currentImage) return;
   generateEl.disabled = true;
   statusEl.textContent = "El curador está examinando la pieza...";
