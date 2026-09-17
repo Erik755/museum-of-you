@@ -1,1 +1,88 @@
-FILE_PLACEHOLDER2
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c0c0d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>The Museum of You</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="./icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" sizes="180x180" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="top">
+    <p class="eyebrow">Colección permanente</p>
+    <h1 id="titleTap">The Museum of You</h1>
+    <p class="sub">Objetos insignificantes. Tratamiento solemne.</p>
+    <button type="button" id="installBtn" class="install-btn">Instalar app</button>
+    <p class="tiny" id="installHint"></p>
+  </header>
+  <main>
+    <section class="panel hidden" id="setup">
+      <h2>Curador (solo tú)</h2>
+      <p class="hint">Ajustes en este teléfono. Fotos en almacén local (no se suben a GitHub).</p>
+      <label>Proveedor
+        <select id="provider">
+          <option value="groq">Groq</option>
+          <option value="gemini">Gemini (Google)</option>
+        </select>
+      </label>
+      <label>URL del proxy (Cloudflare)
+        <input id="proxyUrl" type="url" autocomplete="off" value="https://museum-of-you-proxy.sanchezerik836.workers.dev" placeholder="https://museum-of-you-proxy.sanchezerik836.workers.dev" />
+      </label>
+      <p class="hint">La key de Gemini vive en Cloudflare. Solo pega la URL del Worker.</p>
+      <label>Modelo
+        <select id="model" size="5">
+          <option value="qwen/qwen3-32b">Groq: Qwen 3 32B</option>
+          <option value="meta-llama/llama-4-scout-17b-16e-instruct">Groq: Llama 4 Scout</option>
+          <option value="gemini-3.8-flash" selected>Gemini 3.8 Flash</option>
+          <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+          <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+        </select>
+      </label>
+            <label>Prompt del curador
+        <textarea id="promptBox" rows="10"></textarea>
+      </label>
+      <button type="button" id="resetPrompt" class="ghost">Restablecer prompt</button>
+      <button type="button" id="saveSetup" class="ghost">Guardar ajustes</button>
+      <button type="button" id="hideSetup" class="ghost">Ocultar ajustes</button>
+      <p class="tiny" id="setupStatus"></p>
+    </section>
+    <section class="panel">
+      <h2>Nueva pieza</h2>
+      <label class="artist-label">Nombre del artista
+        <input id="artist" type="text" placeholder="Ej. Michelle" autocomplete="name" />
+      </label>
+      <div class="actions">
+        <label class="file-btn">Tomar o subir foto
+          <input id="photo" type="file" accept="image/*" capture="environment" hidden />
+        </label>
+        <button type="button" id="generate" disabled>Archivar en el museo</button>
+      </div>
+      <img id="preview" alt="Vista previa" hidden />
+      <p class="status" id="status"></p>
+    </section>
+    <section class="exhibit" id="exhibit" hidden></section>
+    <section class="panel">
+      <div class="row">
+        <h2>Tu museo</h2>
+        <span id="count">0 piezas</span>
+      </div>
+      <div id="gallery" class="gallery"></div>
+    </section>
+  </main>
+  <div id="lightbox" class="lightbox hidden" role="dialog">
+    <button type="button" id="closeLb" class="close-lb">Cerrar y volver al museo</button>
+    <div id="lbInner" class="lb-inner"></div>
+    <div class="lb-actions">
+      <button type="button" id="shareBtn">Compartir</button>
+      <button type="button" id="downloadBtn" class="ghost">Guardar imagen</button>
+    </div>
+  </div>
+  <script src="./app.js?v=23"></script>
+</body>
+</html>
