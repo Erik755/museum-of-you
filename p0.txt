@@ -1,0 +1,146 @@
+const KEY_GROQ = "moy_groq_key";
+const KEY_GEM = "moy_gemini_key";
+const PROVIDER = "moy_provider";
+const MODEL = "moy_model";
+const OWNER = "moy_owner";
+const PROMPT = "moy_prompt";
+const DB = "moy_pieces";
+const GEMINI_FALLBACKS = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
+
+const DEFAULT_PROMPT = `Eres el curador más serio de un museo imaginario llamado The Museum of You.
+Tratas objetos cotidianos ridículos con extrema solemnidad académica.
+Nunca expliques que es una broma. Nunca uses emojis.
+
+La pieza pertenece al universo de {{owner}}.
+Fecha de ingreso: {{fecha}}.
+
+Responde SOLO en JSON válido, sin markdown, con estas claves:
+{
+  "titulo": "título en mayúsculas, corto",
+  "fecha": "{{fecha}}",
+  "periodo": "nombre inventado de un periodo histórico personal",
+  "descripcion": "UNA sola frase curatorial, máximo 18 palabras, específica de lo que se ve",
+  "importancia": número entero del 1 al 100, normalmente bajo (1-25),
+  "ubicacion": "sala o ala inventada del museo"
+}`;
+
+const $ = (id) => document.getElementById(id);
+const apiKeyEl = $("apiKey");
+const providerEl = $("provider");
+const modelEl = $("model");
+const ownerEl = $("owner");
+const promptEl = $("promptBox");
+const photoEl = $("photo");
+const previewEl = $("preview");
+const generateEl = $("generate");
+const statusEl = $("status");
+const exhibitEl = $("exhibit");
+const galleryEl = $("gallery");
+const countEl = $("count");
+const setupEl = $("setup");
+const lightbox = $("lightbox");
+const lbInner = $("lbInner");
+const installBtn = $("installBtn");
+const installHint = $("installHint");
+
+let currentImage = "";
+let listCache = [];
+let openIndex = -1;
+let deferredPrompt = null;
+let handlersBound = false;
+
+function ls(k, v) {
+  if (arguments.length === 1) {
+    try { return localStorage.getItem(k); } catch { return null; }
+  }
+  try { localStorage.setItem(k, v); return true; } catch { return false; }
+}
+function lsRemove(k) {
+  try { localStorage.removeItem(k); } catch (_) {}
+}
+function currentProvider() {
+  return (providerEl && providerEl.value) === "gemini" ? "gemini" : "groq";
+}
+function keyStore() {
+  return currentProvider() === "gemini" ? KEY_GEM : KEY_GROQ;
+}
+function openIdb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("moy_idb", 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGet(key) {
+  const db = await openIdb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const q = db.transaction("kv").objectStore("kv").get(key);
+      q.onsuccess = () => resolve(q.result);
+      q.onerror = () => reject(q.error);
+    });
+  } finally {
+    try { db.close(); } catch (_) {}
+  }
+}
+async function idbSet(key, val) {
+  const db = await openIdb();
+  try {
+    await new Promise((resolve, reject) => {
+      const q = db.transaction("kv", "readwrite").objectStore("kv").put(val, key);
+      q.onsuccess = () => resolve();
+      q.onerror = () => reject(q.error);
+    });
+  } finally {
+    try { db.close(); } catch (_) {}
+  }
+}
+async function idbDel(key) {
+  const db = await openIdb();
+  try {
+    await new Promise((resolve, reject) => {
+      const q = db.transaction("kv", "readwrite").objectStore("kv").delete(key);
+      q.onsuccess = () => resolve();
+      q.onerror = () => reject(q.error);
+    });
+  } finally {
+    try { db.close(); } catch (_) {}
+  }
+}
+function pieces() { return listCache; }
+async function loadPieces() {
+  let fromLs = [];
+  try { fromLs = JSON.parse(ls(DB) || "[]"); } catch { fromLs = []; }
+  if (!Array.isArray(fromLs)) fromLs = [];
+
+  try {
+    const fromIdb = await idbGet("pieces");
+    if (Array.isArray(fromIdb) && fromIdb.length) {
+      listCache = fromIdb;
+    } else if (fromLs.length) {
+      listCache = fromLs;
+      await idbSet("pieces", listCache);
+    } else {
+      listCache = Array.isArray(fromIdb) ? fromIdb : [];
+    }
+  } catch (_) {
+    listCache = fromLs;
+    if (listCache.length) {
+      try { await idbSet("pieces", listCache); } catch (_) {}
+    }
+  }
+  // Always drop legacy localStorage blob (quota killer), even empty leftovers
+  lsRemove(DB);
+  renderGallery();
+}
+async function savePieces(list) {
+  listCache = list;
+  renderGallery();
+  try {
+    await idbSet("pieces", list);
+    lsRemove(DB);
+  } catch (err) {

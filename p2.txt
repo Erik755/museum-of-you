@@ -1,0 +1,115 @@
+    if (idbSettings.prompt && !ls(PROMPT)) ls(PROMPT, idbSettings.prompt);
+  }
+}
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+
+function shortDesc(t) {
+  const words = String(t || "").trim().split(/\s+/);
+  if (words.length <= 20) return t || "";
+  return words.slice(0, 18).join(" ") + ".";
+}
+function framed(src) {
+  return `<div class="gold-frame"><img src="${src || ""}" alt="" /></div>`;
+}
+function plaqueHtml(p) {
+  return `${framed(p.image)}
+    <div class="plaque">
+      <p class="meta">${escapeHtml(p.fecha || "")}</p>
+      <h3>${escapeHtml(p.titulo || "")}</h3>
+      <p class="meta">${escapeHtml(p.periodo || "")} · ${escapeHtml(p.ubicacion || "")}</p>
+      <p class="desc">${escapeHtml(shortDesc(p.descripcion || ""))}</p>
+      <p class="score">Importancia histórica: ${escapeHtml(String(p.importancia ?? "?"))}/100</p>
+    </div>`;
+}
+function openPiece(i) {
+  const p = pieces()[i];
+  if (!p) return;
+  openIndex = i;
+  lbInner.innerHTML = plaqueHtml(p);
+  lightbox.classList.remove("hidden");
+}
+function shareText(p) {
+  return `${p.titulo || "Pieza"}\n${shortDesc(p.descripcion || "")}\nImportancia: ${p.importancia ?? "?"}/100\nThe Museum of You`;
+}
+async function pieceFile(p) {
+  const img = await loadImg(p.image);
+  const w = 1080, h = 1350;
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#f3f1ec"; ctx.fillRect(0, 0, w, h);
+  const g = ctx.createLinearGradient(40, 40, 1040, 820);
+  g.addColorStop(0, "#f0d78a"); g.addColorStop(0.5, "#b8892b"); g.addColorStop(1, "#6e4e14");
+  ctx.fillStyle = g; ctx.fillRect(40, 40, 1000, 790);
+  ctx.strokeStyle = "#5c4010"; ctx.lineWidth = 10; ctx.strokeRect(55, 55, 970, 760);
+  ctx.strokeStyle = "#e8c86a"; ctx.lineWidth = 4; ctx.strokeRect(70, 70, 940, 730);
+  const box = 110;
+  const maxW = w - 2 * box, maxH = 680;
+  const ratio = Math.min(maxW / img.width, maxH / img.height);
+  const iw = img.width * ratio, ih = img.height * ratio;
+  ctx.fillStyle = "#111"; ctx.fillRect((w - iw) / 2, 90, iw, ih);
+  ctx.drawImage(img, (w - iw) / 2, 90, iw, ih);
+  ctx.fillStyle = "#1a1814"; ctx.font = "28px Georgia";
+  wrap(ctx, (p.titulo || "SIN TÍTULO").toUpperCase(), box, 880, w - 2 * box, 34);
+  ctx.font = "22px Georgia";
+  wrap(ctx, shortDesc(p.descripcion || ""), box, 990, w - 2 * box, 30);
+  ctx.font = "18px sans-serif"; ctx.fillStyle = "#5c5850";
+  ctx.fillText(`Importancia ${p.importancia ?? "?"}/100  ·  The Museum of You`, box, 1280);
+  const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.88));
+  return new File([blob], "museum-of-you.jpg", { type: "image/jpeg" });
+}
+function wrap(ctx, text, x, y, maxW, lineH) {
+  const words = String(text).split(/\s+/);
+  let line = "";
+  for (const word of words) {
+    const test = line ? line + " " + word : word;
+    if (ctx.measureText(test).width > maxW) { ctx.fillText(line, x, y); line = word; y += lineH; }
+    else line = test;
+  }
+  if (line) ctx.fillText(line, x, y);
+}
+function loadImg(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+function downloadFile(file) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(file);
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+function renderGallery() {
+  if (!galleryEl || !countEl) return;
+  const list = pieces();
+  countEl.textContent = list.length + (list.length === 1 ? " pieza" : " piezas");
+  galleryEl.innerHTML = list.map((p, i) => `
+    <article class="card" data-open="${i}">
+      ${framed(p.image)}
+      <p>${escapeHtml(p.titulo || "Sin título")}</p>
+      <button type="button" class="ghost open-mini" data-open="${i}">Ver / compartir</button>
+    </article>`).join("") || "<p class='tiny'>Aún no hay patrimonio.</p>";
+  galleryEl.querySelectorAll("[data-open]").forEach((el) => {
+    el.onclick = (ev) => { ev.stopPropagation(); openPiece(Number(el.dataset.open)); };
+  });
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&",
+    "<": "<",
+    ">": ">",
+    '"': """,
+    "'": "&#39;"
+  }[c]));
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {

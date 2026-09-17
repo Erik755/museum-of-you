@@ -1,0 +1,23 @@
+      if (String(err.name) !== "AbortError" && statusEl) statusEl.textContent = "No se pudo compartir.";
+    }
+  };
+  if ($("downloadBtn")) $("downloadBtn").onclick = async () => {
+    const p = pieces()[openIndex];
+    if (!p) return;
+    await downloadFile(await pieceFile(p));
+  };
+}
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
+
+(async function boot() {
+  try {
+    bindHandlers();
+    await restoreSetup();
+    await loadPieces();
+    await restoreDraft();
+  } catch (err) {
+    bindHandlers();
+    if (statusEl) statusEl.textContent = "Error al iniciar: " + (err && err.message ? err.message : err);
+  }
+})();
