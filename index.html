@@ -34,11 +34,21 @@
       </label>
       <label>
         API key
-        <input id="apiKey" type="password" autocomplete="off" placeholder="gsk_... o AIza..." />
+        <input id="apiKey" type="password" autocomplete="off" placeholder="gsk_... o AIzaSy..." />
       </label>
       <label>
         Modelo
-        <select id="model"></select>
+        <select id="model">
+          <optgroup label="Groq" id="grpGroq">
+            <option value="qwen/qwen3.8-27b">Qwen 3.8 27B</option>
+            <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout</option>
+          </optgroup>
+          <optgroup label="Gemini" id="grpGemini">
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
+            <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+          </optgroup>
+        </select>
       </label>
       <label>
         Nombre del museo / habitante
@@ -87,6 +97,6 @@
     </div>
   </div>
 
-  <script src="./app.js"></script>
+  <script src="./app.js?v=8"></script>
 </body>
 </html>
