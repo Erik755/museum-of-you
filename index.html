@@ -19,7 +19,7 @@
   <main>
     <section class="panel" id="setup">
       <h2>Configuración</h2>
-      <p class="hint">La API key de Groq es una llave general. El modelo lo eliges aquí abajo, no al crear la key.</p>
+      <p class="hint">La API key es general. El modelo y el prompt se eligen aquí.</p>
       <label>
         API key de Groq
         <input id="apiKey" type="password" autocomplete="off" placeholder="gsk_..." />
@@ -36,6 +36,12 @@
         Nombre del museo / habitante
         <input id="owner" type="text" placeholder="Ej. Michelle" />
       </label>
+      <label>
+        Prompt del curador
+        <textarea id="promptBox" rows="14"></textarea>
+      </label>
+      <p class="tiny">Puedes usar {{owner}} y {{fecha}}. No borres la parte del JSON o la ficha se rompe.</p>
+      <button type="button" id="resetPrompt" class="ghost">Restablecer prompt</button>
       <button type="button" id="saveSetup" class="ghost">Guardar en este teléfono</button>
       <p class="tiny" id="setupStatus"></p>
     </section>

@@ -1,12 +1,31 @@
 const KEY = "moy_groq_key";
 const MODEL = "moy_model";
 const OWNER = "moy_owner";
+const PROMPT = "moy_prompt";
 const DB = "moy_pieces";
+
+const DEFAULT_PROMPT = `Eres el curador más serio de un museo imaginario llamado The Museum of You.
+Tratas objetos cotidianos ridículos con extrema solemnidad académica.
+Nunca expliques que es una broma. Nunca uses emojis.
+
+La pieza pertenece al universo de {{owner}}.
+Fecha de ingreso: {{fecha}}.
+
+Responde SOLO en JSON válido, sin markdown, con estas claves:
+{
+  "titulo": "título en mayúsculas, corto",
+  "fecha": "{{fecha}}",
+  "periodo": "nombre inventado de un periodo histórico personal",
+  "descripcion": "2 o 3 frases curatoriales solemnes y específicas de LO QUE SE VE en la foto",
+  "importancia": número entero del 1 al 100, normalmente bajo (1-25) salvo que el objeto sea extraño,
+  "ubicacion": "sala o ala inventada del museo"
+}`;
 
 const $ = (id) => document.getElementById(id);
 const apiKeyEl = $("apiKey");
 const modelEl = $("model");
 const ownerEl = $("owner");
+const promptEl = $("promptBox");
 const photoEl = $("photo");
 const previewEl = $("preview");
 const generateEl = $("generate");
@@ -20,12 +39,20 @@ let currentImage = "";
 apiKeyEl.value = localStorage.getItem(KEY) || "";
 modelEl.value = localStorage.getItem(MODEL) || "qwen/qwen3.6-27b";
 ownerEl.value = localStorage.getItem(OWNER) || "";
+promptEl.value = localStorage.getItem(PROMPT) || DEFAULT_PROMPT;
 
 $("saveSetup").onclick = () => {
   localStorage.setItem(KEY, apiKeyEl.value.trim());
   localStorage.setItem(MODEL, modelEl.value);
   localStorage.setItem(OWNER, ownerEl.value.trim());
-  $("setupStatus").textContent = "Guardado solo en este teléfono. No se sube a ningún servidor nuestro.";
+  localStorage.setItem(PROMPT, promptEl.value);
+  $("setupStatus").textContent = "Guardado solo en este teléfono.";
+};
+
+$("resetPrompt").onclick = () => {
+  promptEl.value = DEFAULT_PROMPT;
+  localStorage.setItem(PROMPT, DEFAULT_PROMPT);
+  $("setupStatus").textContent = "Prompt restablecido.";
 };
 
 photoEl.onchange = async () => {
@@ -113,22 +140,9 @@ async function archivePiece() {
     day: "2-digit", month: "long", year: "numeric"
   });
 
-  const prompt = `Eres el curador más serio de un museo imaginario llamado The Museum of You.
-Tratas objetos cotidianos ridículos con extrema solemnidad académica.
-Nunca expliques que es una broma. Nunca uses emojis.
-
-La pieza pertenece al universo de ${owner}.
-Fecha de ingreso: ${today}.
-
-Responde SOLO en JSON válido, sin markdown, con estas claves:
-{
-  "titulo": "título en mayúsculas, corto",
-  "fecha": "${today}",
-  "periodo": "nombre inventado de un periodo histórico personal",
-  "descripcion": "2 o 3 frases curatoriales solemnes y específicas de LO QUE SE VE en la foto",
-  "importancia": número entero del 1 al 100, normalmente bajo (1-25) salvo que el objeto sea extraño,
-  "ubicacion": "sala o ala inventada del museo"
-}`;
+  const prompt = (promptEl.value || DEFAULT_PROMPT)
+    .replaceAll("{{owner}}", owner)
+    .replaceAll("{{fecha}}", today);
 
   try {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
