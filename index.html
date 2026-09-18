@@ -59,8 +59,11 @@
         <input id="artist" type="text" placeholder="Ej. Michelle" autocomplete="name" />
       </label>
       <div class="actions">
-        <label class="file-btn">Elegir foto (galería o cámara)
-          <input id="photo" type="file" accept="image/*" hidden />
+        <label class="file-btn">Tomar foto
+          <input id="photoCamera" class="photo-input" type="file" accept="image/*" capture="environment" hidden />
+        </label>
+        <label class="file-btn ghost-file">Subir de galería
+          <input id="photoGallery" class="photo-input" type="file" accept="image/*" hidden />
         </label>
         <button type="button" id="generate" disabled>Archivar en el museo</button>
       </div>
@@ -85,6 +88,6 @@
       <button type="button" id="deleteBtn" class="ghost danger">Borrar pieza</button>
     </div>
   </div>
-  <script src="./app.js?v=27"></script>
+  <script src="./app.js?v=28"></script>
 </body>
 </html>

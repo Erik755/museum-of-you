@@ -109,3 +109,7 @@ button:disabled { opacity: .4; }
 .card-actions .ghost{flex:1;min-width:7rem}
 button.danger, .ghost.danger{color:#e8b4b4;border-color:#6a3030}
 button.danger:hover, .ghost.danger:hover{background:#3a1818;color:#ffd0d0}
+
+.actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:stretch}
+.file-btn.ghost-file{background:transparent;border:1px solid #c4a35a;color:#c4a35a}
+.file-btn.ghost-file:hover{background:rgba(196,163,90,.12)}

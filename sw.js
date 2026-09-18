@@ -1,4 +1,4 @@
-const CACHE = "museum-you-v27";
+const CACHE = "museum-you-v28";
 const ASSETS = ["./index.html", "./styles.css", "./app.js", "./manifest.json", "./icon.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
