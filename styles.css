@@ -113,3 +113,14 @@ button.danger:hover, .ghost.danger:hover{background:#3a1818;color:#ffd0d0}
 .actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:stretch}
 .file-btn.ghost-file{background:transparent;border:1px solid #c4a35a;color:#c4a35a}
 .file-btn.ghost-file:hover{background:rgba(196,163,90,.12)}
+
+/* v30: aviso de IA y consentimiento previo */
+.ai-notice { margin: 12px 0 0; line-height: 1.45; }
+.ai-notice a, .consent-dialog a { color: #c4a35a; text-decoration: underline; text-underline-offset: 2px; }
+.consent-dialog { max-width: 30rem; width: calc(100% - 32px); padding: 20px; border: 1px solid #444; background: #161618; color: var(--chrome); font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
+.consent-dialog::backdrop { background: rgba(0, 0, 0, .7); }
+.consent-dialog h2 { font-family: Georgia, "Times New Roman", serif; font-size: 18px; }
+.consent-dialog ul { padding-left: 18px; }
+.consent-dialog li + li { margin-top: 6px; }
+.consent-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.consent-actions button { flex: 1; min-width: 8rem; margin-top: 0; }

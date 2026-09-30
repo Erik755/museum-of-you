@@ -1,0 +1,13 @@
+{
+  "name": "museum-of-you-proxy",
+  "private": true,
+  "description": "Cloudflare Worker that proxies The Museum of You to Gemini/Groq without exposing API keys.",
+  "scripts": {
+    "deploy": "wrangler deploy --keep-vars",
+    "test": "node --test test/"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.17"
+  },
+  "type": "module"
+}

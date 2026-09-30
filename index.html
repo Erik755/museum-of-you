@@ -18,7 +18,7 @@
     <p class="eyebrow">Colección permanente</p>
     <h1 id="titleTap">The Museum of You</h1>
     <p class="sub">Objetos insignificantes. Tratamiento solemne.</p>
-    <p class="store-link"><a href="https://play.google.com/store/apps/dev?id=7194451611707231868" target="_blank" rel="noopener noreferrer">Más apps en Google Play</a></p>
+    <p class="store-link"><a href="https://play.google.com/store/apps/dev?id=7194451611707231868" target="_blank" rel="noopener noreferrer">Más apps en Google Play</a> · <a href="https://extreme-solutions-eosin.vercel.app/privacidad#museum" target="_blank" rel="noopener noreferrer">Privacidad</a></p>
     <button type="button" id="installBtn" class="install-btn">Instalar app</button>
     <p class="tiny" id="installHint"></p>
   </header>
@@ -67,6 +67,7 @@
         </label>
         <button type="button" id="generate" disabled>Archivar en el museo</button>
       </div>
+      <p class="tiny ai-notice">Al archivar, tu foto se envía a Google Gemini (nivel gratuito), que puede usarla para mejorar sus servicios y revisarla con personas. No subas fotos sensibles ni de otras personas sin su permiso. <a href="https://extreme-solutions-eosin.vercel.app/privacidad#museum" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a></p>
       <img id="preview" alt="Vista previa" hidden />
       <p class="status" id="status"></p>
     </section>
@@ -88,6 +89,7 @@
       <button type="button" id="deleteBtn" class="ghost danger">Borrar pieza</button>
     </div>
   </div>
-  <script src="./app.js?v=29"></script>
+  <script src="./consent.js?v=30"></script>
+  <script src="./app.js?v=30"></script>
 </body>
 </html>
